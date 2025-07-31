@@ -36,6 +36,7 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
 
     let location: PhotoLocation | undefined;
     if (exifData?.latitude && exifData?.longitude) {
+      console.log('GPS data found for', file.name, 'lat:', exifData.latitude, 'lon:', exifData.longitude);
       location = {
         latitude: exifData.latitude,
         longitude: exifData.longitude

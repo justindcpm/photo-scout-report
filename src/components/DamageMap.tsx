@@ -20,6 +20,14 @@ export const DamageMap = ({ photoSet, visible }: DamageMapProps) => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
+  // Debug logging
+  console.log('DamageMap render:', { 
+    photoSet: photoSet?.damageId, 
+    visible, 
+    damagePhotos: photoSet?.damagePhotos?.length,
+    hasLocation: photoSet?.damagePhotos?.some(p => p.location)
+  });
+
   useEffect(() => {
     if (!visible || !mapContainerRef.current) return;
 
@@ -62,7 +70,10 @@ export const DamageMap = ({ photoSet, visible }: DamageMapProps) => {
 
     const photosWithLocation = allPhotos.filter(photo => photo.location);
 
+    console.log('Photos with location:', photosWithLocation.length, 'out of', allPhotos.length);
+
     if (photosWithLocation.length === 0) {
+      console.log('No photos with location data found');
       return;
     }
 
