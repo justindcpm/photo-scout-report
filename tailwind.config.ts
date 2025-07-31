@@ -26,7 +26,8 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					hover: 'hsl(var(--primary-hover))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
@@ -52,6 +53,18 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				precondition: {
+					DEFAULT: 'hsl(var(--precondition))',
+					foreground: 'hsl(var(--precondition-foreground))'
+				},
+				damage: {
+					DEFAULT: 'hsl(var(--damage))',
+					foreground: 'hsl(var(--damage-foreground))'
+				},
+				completion: {
+					DEFAULT: 'hsl(var(--completion))',
+					foreground: 'hsl(var(--completion-foreground))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -67,6 +80,20 @@ export default {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
+			},
+			backgroundImage: {
+				'gradient-header': 'var(--gradient-header)',
+				'gradient-card': 'var(--gradient-card)',
+				'gradient-gallery': 'var(--gradient-gallery)'
+			},
+			boxShadow: {
+				'card': 'var(--shadow-card)',
+				'gallery': 'var(--shadow-gallery)',
+				'map': 'var(--shadow-map)'
+			},
+			transitionTimingFunction: {
+				'smooth': 'var(--transition-smooth)',
+				'photo': 'var(--transition-photo)'
 			},
 			keyframes: {
 				'accordion-down': {
@@ -84,11 +111,31 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'photo-zoom': {
+					from: {
+						transform: 'scale(1)'
+					},
+					to: {
+						transform: 'scale(2)'
+					}
+				},
+				'slide-in': {
+					from: {
+						opacity: '0',
+						transform: 'translateY(10px)'
+					},
+					to: {
+						opacity: '1',
+						transform: 'translateY(0)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'photo-zoom': 'photo-zoom 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+				'slide-in': 'slide-in 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
 			}
 		}
 	},
