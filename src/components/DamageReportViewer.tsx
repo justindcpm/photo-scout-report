@@ -271,6 +271,7 @@ export const DamageReportViewer = () => {
               <DamageMap
                 photoSet={currentSet}
                 visible={state.mapVisible}
+                onPhotoSelect={handlePhotoSelect}
               />
             )}
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { Card } from '@/components/ui/card';
-import { PhotoSet } from '@/types/damage-report';
+import { PhotoSet, PhotoMetadata } from '@/types/damage-report';
 
 // Fix for default markers in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -14,9 +14,10 @@ L.Icon.Default.mergeOptions({
 interface DamageMapProps {
   photoSet?: PhotoSet;
   visible: boolean;
+  onPhotoSelect?: (type: 'damage' | 'precondition' | 'completion', photo: PhotoMetadata) => void;
 }
 
-export const DamageMap = ({ photoSet, visible }: DamageMapProps) => {
+export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
@@ -101,6 +102,9 @@ export const DamageMap = ({ photoSet, visible }: DamageMapProps) => {
       if (photo.location) {
         L.marker([photo.location.latitude, photo.location.longitude], { icon: damageIcon })
           .bindPopup(`<strong>Damage Photo</strong><br/>${photo.name}`)
+          .on('click', () => {
+            onPhotoSelect?.('damage', photo);
+          })
           .addTo(mapRef.current!);
       }
     });
@@ -109,6 +113,9 @@ export const DamageMap = ({ photoSet, visible }: DamageMapProps) => {
       if (photo.location) {
         L.marker([photo.location.latitude, photo.location.longitude], { icon: preconditionIcon })
           .bindPopup(`<strong>Precondition Photo</strong><br/>${photo.name}`)
+          .on('click', () => {
+            onPhotoSelect?.('precondition', photo);
+          })
           .addTo(mapRef.current!);
       }
     });
@@ -117,6 +124,9 @@ export const DamageMap = ({ photoSet, visible }: DamageMapProps) => {
       if (photo.location) {
         L.marker([photo.location.latitude, photo.location.longitude], { icon: completionIcon })
           .bindPopup(`<strong>Completion Photo</strong><br/>${photo.name}`)
+          .on('click', () => {
+            onPhotoSelect?.('completion', photo);
+          })
           .addTo(mapRef.current!);
       }
     });
