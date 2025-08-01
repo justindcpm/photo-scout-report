@@ -276,7 +276,7 @@ export const DamageReportViewer = () => {
             )}
 
             {/* Photo Galleries */}
-            <div className={`grid gap-4 h-[600px] ${
+            <div className={`grid gap-4 h-[700px] ${
               visibleGalleries === 1 ? 'grid-cols-1' :
               visibleGalleries === 2 ? 'grid-cols-2' : 
               'grid-cols-3'

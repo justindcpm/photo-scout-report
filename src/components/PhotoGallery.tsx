@@ -70,16 +70,16 @@ export const PhotoGallery = ({
 
   return (
     <Card className="flex-1 bg-gradient-gallery shadow-gallery overflow-hidden">
-      {/* Header */}
-      <div className={`p-3 border-b bg-${getTypeColor(type)} text-${getTypeColor(type)}-foreground`}>
+      {/* Compact Header */}
+      <div className={`p-2 border-b bg-${getTypeColor(type)} text-${getTypeColor(type)}-foreground`}>
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold capitalize">{type} Photos</h3>
+          <h3 className="font-medium text-sm capitalize">{type}</h3>
           <div className="flex gap-1">
             <Button
               variant="ghost"
               size="tool"
               onClick={onRotate}
-              className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20`}
+              className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20 h-6 w-6 p-1`}
               title="Rotate 90°"
             >
               <RotateCw className="w-3 h-3" />
@@ -88,7 +88,7 @@ export const PhotoGallery = ({
               variant="ghost"
               size="tool"
               onClick={onZoomToggle}
-              className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20`}
+              className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20 h-6 w-6 p-1`}
               title={zoom > 1 ? "Zoom Out" : "Zoom In"}
             >
               {zoom > 1 ? <ZoomOut className="w-3 h-3" /> : <ZoomIn className="w-3 h-3" />}
@@ -133,24 +133,24 @@ export const PhotoGallery = ({
           )}
         </div>
 
-        {/* Photo Count and Name */}
+        {/* Compact Photo Info */}
         {selectedPhoto && (
-          <div className="p-2 bg-background/50 backdrop-blur-sm border-t">
+          <div className="p-1 bg-background/50 backdrop-blur-sm border-t">
             <p className="text-xs text-muted-foreground truncate" title={selectedPhoto.name}>
               {selectedPhoto.name}
             </p>
           </div>
         )}
 
-        {/* Thumbnail Strip */}
-        <div className="p-3 border-t bg-background/30">
-          <div className="flex gap-2 overflow-x-auto gallery-scroll pb-1">
+        {/* Compact Thumbnail Strip */}
+        <div className="p-2 border-t bg-background/30">
+          <div className="flex gap-1 overflow-x-auto gallery-scroll">
             {photos.length > 0 ? (
               photos.map((photo, index) => (
                 <button
                   key={photo.name}
                   onClick={() => onPhotoSelect(photo)}
-                  className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-smooth ${
+                  className={`flex-shrink-0 w-12 h-12 rounded-md overflow-hidden border-2 transition-smooth ${
                     selectedPhoto?.name === photo.name 
                       ? `border-${getTypeColor(type)} shadow-md` 
                       : 'border-border hover:border-muted-foreground'
@@ -165,15 +165,15 @@ export const PhotoGallery = ({
                 </button>
               ))
             ) : (
-              <div className="flex-1 text-center py-4">
-                <p className="text-sm text-muted-foreground">No {type} photos available</p>
+              <div className="flex-1 text-center py-2">
+                <p className="text-xs text-muted-foreground">No {type} photos</p>
               </div>
             )}
           </div>
           
           {photos.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-2">
-              {photos.length} photo{photos.length !== 1 ? 's' : ''} available
+            <p className="text-xs text-muted-foreground mt-1">
+              {photos.length} photo{photos.length !== 1 ? 's' : ''}
             </p>
           )}
         </div>
