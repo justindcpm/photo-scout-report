@@ -213,6 +213,21 @@ export const DamageReportViewer = () => {
     }));
   }, []);
 
+  const handleReset = useCallback(() => {
+    setState({
+      photoSets: [],
+      currentSetIndex: 0,
+      selectedPhotos: {},
+      galleries: {
+        precondition: { visible: true, rotation: 0, zoom: 1, panX: 0, panY: 0, candidatePhotos: [] },
+        damage: { visible: true, rotation: 0, zoom: 1, panX: 0, panY: 0, candidatePhotos: [] },
+        completion: { visible: true, rotation: 0, zoom: 1, panX: 0, panY: 0, candidatePhotos: [] }
+      },
+      searchTerm: '',
+      mapVisible: true
+    });
+  }, []);
+
   const currentSet = state.photoSets[state.currentSetIndex];
   const galleryVisibility = {
     precondition: state.galleries.precondition.visible,
@@ -248,6 +263,7 @@ export const DamageReportViewer = () => {
               galleryVisibility={galleryVisibility}
               onToggleMap={handleToggleMap}
               mapVisible={state.mapVisible}
+              onReset={handleReset}
             />
 
             {/* Map */}

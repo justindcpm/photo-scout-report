@@ -1,4 +1,4 @@
-import { Search, ChevronLeft, ChevronRight, Map, Eye, EyeOff } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Map, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -16,6 +16,7 @@ interface ReportHeaderProps {
   galleryVisibility: Record<GalleryType, boolean>;
   onToggleMap: () => void;
   mapVisible: boolean;
+  onReset: () => void;
 }
 
 export const ReportHeader = ({
@@ -28,7 +29,8 @@ export const ReportHeader = ({
   onToggleGallery,
   galleryVisibility,
   onToggleMap,
-  mapVisible
+  mapVisible,
+  onReset
 }: ReportHeaderProps) => {
   const currentSet = photoSets[currentSetIndex];
   const filteredSets = photoSets.filter(set => 
@@ -38,9 +40,18 @@ export const ReportHeader = ({
   return (
     <Card className="p-4 bg-gradient-header text-primary-foreground shadow-card">
       <div className="flex flex-col gap-4">
-        {/* Top row: Title and Map toggle */}
+        {/* Top row: Title and controls */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onReset}
+              className="text-primary-foreground hover:bg-primary-foreground/20"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Upload
+            </Button>
             <div className="w-8 h-8 bg-primary-foreground/20 rounded-lg flex items-center justify-center">
               <Search className="w-4 h-4" />
             </div>

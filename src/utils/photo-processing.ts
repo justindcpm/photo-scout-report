@@ -28,19 +28,33 @@ export async function extractPhotoMetadata(file: File): Promise<PhotoMetadata> {
   const url = URL.createObjectURL(file);
   
   try {
-    const exifData = await exifr.parse(file, [
-      'gps',
-      'orientation', 
-      'DateTimeOriginal'
-    ]);
+    // Parse EXIF data with GPS tags
+    const exifData = await exifr.parse(file, {
+      gps: true,
+      exif: true,
+      tiff: true
+    });
+
+    console.log('EXIF data for', file.name, ':', exifData);
 
     let location: PhotoLocation | undefined;
+    
+    // Try multiple ways to access GPS data
     if (exifData?.latitude && exifData?.longitude) {
-      console.log('GPS data found for', file.name, 'lat:', exifData.latitude, 'lon:', exifData.longitude);
+      console.log('GPS data found (direct):', exifData.latitude, exifData.longitude);
       location = {
         latitude: exifData.latitude,
         longitude: exifData.longitude
       };
+    } else if (exifData?.GPS) {
+      console.log('GPS object found:', exifData.GPS);
+      if (exifData.GPS.latitude && exifData.GPS.longitude) {
+        console.log('GPS data found (via GPS object):', exifData.GPS.latitude, exifData.GPS.longitude);
+        location = {
+          latitude: exifData.GPS.latitude,
+          longitude: exifData.GPS.longitude
+        };
+      }
     }
 
     return {
