@@ -3,6 +3,7 @@ import { ReportUploader } from './ReportUploader';
 import { ReportHeader } from './ReportHeader';
 import { PhotoGallery } from './PhotoGallery';
 import { DamageMap } from './DamageMap';
+import { ReportGenerator } from './ReportGenerator';
 import { PhotoSet, GalleryType, DamageReportState, PhotoMetadata } from '@/types/damage-report';
 import { processFolderStructure } from '@/utils/photo-processing';
 import { toast } from 'sonner';
@@ -21,6 +22,7 @@ export const DamageReportViewer = () => {
     mapVisible: true
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showReportGenerator, setShowReportGenerator] = useState(false);
 
   const handleFilesSelected = useCallback(async (files: FileList) => {
     setIsProcessing(true);
@@ -264,7 +266,14 @@ export const DamageReportViewer = () => {
               onToggleMap={handleToggleMap}
               mapVisible={state.mapVisible}
               onReset={handleReset}
+              onToggleReportGenerator={() => setShowReportGenerator(!showReportGenerator)}
+              showReportGenerator={showReportGenerator}
             />
+
+            {/* Report Generator */}
+            {showReportGenerator && (
+              <ReportGenerator photoSets={state.photoSets} />
+            )}
 
             {/* Map */}
             {state.mapVisible && (

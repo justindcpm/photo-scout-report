@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { RotateCw, ZoomIn, ZoomOut } from 'lucide-react';
+import { RotateCw, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PhotoMetadata, GalleryType } from '@/types/damage-report';
@@ -66,6 +66,25 @@ export const PhotoGallery = ({
     setIsDragging(false);
   }, []);
 
+  const getCurrentPhotoIndex = () => {
+    if (!selectedPhoto) return -1;
+    return photos.findIndex(photo => photo.name === selectedPhoto.name);
+  };
+
+  const handlePreviousPhoto = () => {
+    const currentIndex = getCurrentPhotoIndex();
+    if (currentIndex > 0) {
+      onPhotoSelect(photos[currentIndex - 1]);
+    }
+  };
+
+  const handleNextPhoto = () => {
+    const currentIndex = getCurrentPhotoIndex();
+    if (currentIndex < photos.length - 1) {
+      onPhotoSelect(photos[currentIndex + 1]);
+    }
+  };
+
   if (!visible) return null;
 
   return (
@@ -75,6 +94,26 @@ export const PhotoGallery = ({
         <div className="flex items-center justify-between">
           <h3 className="font-medium text-sm capitalize">{type}</h3>
           <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="tool"
+              onClick={handlePreviousPhoto}
+              disabled={getCurrentPhotoIndex() <= 0}
+              className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20 h-6 w-6 p-1 disabled:opacity-50`}
+              title="Previous Photo"
+            >
+              <ChevronLeft className="w-3 h-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="tool"
+              onClick={handleNextPhoto}
+              disabled={getCurrentPhotoIndex() >= photos.length - 1}
+              className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20 h-6 w-6 p-1 disabled:opacity-50`}
+              title="Next Photo"
+            >
+              <ChevronRight className="w-3 h-3" />
+            </Button>
             <Button
               variant="ghost"
               size="tool"
@@ -144,13 +183,13 @@ export const PhotoGallery = ({
 
         {/* Compact Thumbnail Strip */}
         <div className="p-2 border-t bg-background/30">
-          <div className="flex gap-1 overflow-x-auto gallery-scroll">
+          <div className="flex gap-1 overflow-x-auto gallery-scroll" style={{ scrollbarWidth: 'thin' }}>
             {photos.length > 0 ? (
               photos.map((photo, index) => (
                 <button
                   key={photo.name}
                   onClick={() => onPhotoSelect(photo)}
-                  className={`flex-shrink-0 w-12 h-12 rounded-md overflow-hidden border-2 transition-smooth ${
+                  className={`flex-shrink-0 w-12 h-12 min-w-[48px] min-h-[48px] rounded-md overflow-hidden border-2 transition-smooth ${
                     selectedPhoto?.name === photo.name 
                       ? `border-${getTypeColor(type)} shadow-md` 
                       : 'border-border hover:border-muted-foreground'
@@ -161,6 +200,7 @@ export const PhotoGallery = ({
                     src={photo.url}
                     alt={photo.name}
                     className="w-full h-full object-cover"
+                    loading="lazy"
                   />
                 </button>
               ))
@@ -172,9 +212,16 @@ export const PhotoGallery = ({
           </div>
           
           {photos.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {photos.length} photo{photos.length !== 1 ? 's' : ''}
-            </p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-muted-foreground">
+                {photos.length} photo{photos.length !== 1 ? 's' : ''}
+              </p>
+              {selectedPhoto && (
+                <p className="text-xs text-muted-foreground">
+                  {getCurrentPhotoIndex() + 1} of {photos.length}
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>

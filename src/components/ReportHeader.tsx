@@ -1,4 +1,4 @@
-import { Search, ChevronLeft, ChevronRight, Map, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Map, Eye, EyeOff, ArrowLeft, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -17,6 +17,8 @@ interface ReportHeaderProps {
   onToggleMap: () => void;
   mapVisible: boolean;
   onReset: () => void;
+  onToggleReportGenerator: () => void;
+  showReportGenerator: boolean;
 }
 
 export const ReportHeader = ({
@@ -30,7 +32,9 @@ export const ReportHeader = ({
   galleryVisibility,
   onToggleMap,
   mapVisible,
-  onReset
+  onReset,
+  onToggleReportGenerator,
+  showReportGenerator
 }: ReportHeaderProps) => {
   const currentSet = photoSets[currentSetIndex];
   const filteredSets = photoSets.filter(set => 
@@ -58,15 +62,27 @@ export const ReportHeader = ({
             <h1 className="text-xl font-bold">DCPM Damage Report Viewer</h1>
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onToggleMap}
-            className="text-primary-foreground hover:bg-primary-foreground/20"
-          >
-            <Map className="w-4 h-4 mr-2" />
-            {mapVisible ? 'Hide Map' : 'Show Map'}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggleMap}
+              className="text-primary-foreground hover:bg-primary-foreground/20"
+            >
+              <Map className="w-4 h-4 mr-2" />
+              {mapVisible ? 'Hide Map' : 'Show Map'}
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggleReportGenerator}
+              className={`text-primary-foreground hover:bg-primary-foreground/20 ${showReportGenerator ? 'bg-primary-foreground/20' : ''}`}
+            >
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              {showReportGenerator ? 'Hide Report' : 'Generate Report'}
+            </Button>
+          </div>
         </div>
 
         {/* Middle row: Search and navigation */}
