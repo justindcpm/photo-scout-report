@@ -275,6 +275,15 @@ export const DamageReportViewer = () => {
               <ReportGenerator photoSets={state.photoSets} />
             )}
 
+            {/* Map */}
+            {state.mapVisible && (
+              <DamageMap
+                photoSet={currentSet}
+                visible={state.mapVisible}
+                onPhotoSelect={handlePhotoSelect}
+              />
+            )}
+
             {/* Photo Galleries */}
             <div className={`grid gap-4 h-[700px] ${
               visibleGalleries === 1 ? 'grid-cols-1' :
@@ -326,15 +335,6 @@ export const DamageReportViewer = () => {
                 visible={state.galleries.completion.visible}
               />
             </div>
-
-            {/* Map */}
-            {state.mapVisible && (
-              <DamageMap
-                photoSet={currentSet}
-                visible={state.mapVisible}
-                onPhotoSelect={handlePhotoSelect}
-              />
-            )}
           </>
         )}
       </div>
