@@ -2,7 +2,7 @@ import exifr from 'exifr';
 import { PhotoMetadata, PhotoSet, PhotoLocation } from '@/types/damage-report';
 
 /**
- * Calculate distance between two GPS coordinates using Haversine formula
+ * Calculate distance between two GPS coordinates using Haversine formula (exported function)
  */
 export function calculateDistance(
   lat1: number, 
