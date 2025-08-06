@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Ruler, Satellite, Map as MapIcon } from 'lucide-react';
+import { Ruler, Satellite, Map as MapIcon, MousePointer2 } from 'lucide-react';
 import { PhotoSet, PhotoMetadata } from '@/types/damage-report';
 import { calculateDistance } from '@/utils/photo-processing';
 
@@ -25,7 +25,9 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [satelliteView, setSatelliteView] = useState(false);
   const [measuring, setMeasuring] = useState(false);
+  const [photoMeasuring, setPhotoMeasuring] = useState(false);
   const [autoDistance, setAutoDistance] = useState<number | null>(null);
+  const [selectedPhotoMarkers, setSelectedPhotoMarkers] = useState<{first?: {photo: PhotoMetadata, type: string}, second?: {photo: PhotoMetadata, type: string}}>({});
   const measureLayerRef = useRef<L.LayerGroup | null>(null);
 
   // Debug logging
@@ -130,34 +132,49 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
     // Add markers for each photo type
     photoSet.damagePhotos.forEach(photo => {
       if (photo.location) {
-        L.marker([photo.location.latitude, photo.location.longitude], { icon: damageIcon })
+        const marker = L.marker([photo.location.latitude, photo.location.longitude], { icon: damageIcon })
           .bindPopup(`<strong>Damage Photo</strong><br/>${photo.name}`)
           .on('click', () => {
-            onPhotoSelect?.('damage', photo);
-          })
-          .addTo(mapRef.current!);
+            if (photoMeasuring) {
+              handlePhotoMeasurement('damage', photo);
+            } else {
+              onPhotoSelect?.('damage', photo);
+            }
+          });
+        marker.addTo(mapRef.current!);
+        (marker as any)._photoData = { photo, type: 'damage' };
       }
     });
 
     photoSet.preconditionPhotos.forEach(photo => {
       if (photo.location) {
-        L.marker([photo.location.latitude, photo.location.longitude], { icon: preconditionIcon })
+        const marker = L.marker([photo.location.latitude, photo.location.longitude], { icon: preconditionIcon })
           .bindPopup(`<strong>Precondition Photo</strong><br/>${photo.name}`)
           .on('click', () => {
-            onPhotoSelect?.('precondition', photo);
-          })
-          .addTo(mapRef.current!);
+            if (photoMeasuring) {
+              handlePhotoMeasurement('precondition', photo);
+            } else {
+              onPhotoSelect?.('precondition', photo);
+            }
+          });
+        marker.addTo(mapRef.current!);
+        (marker as any)._photoData = { photo, type: 'precondition' };
       }
     });
 
     photoSet.completionPhotos.forEach(photo => {
       if (photo.location) {
-        L.marker([photo.location.latitude, photo.location.longitude], { icon: completionIcon })
+        const marker = L.marker([photo.location.latitude, photo.location.longitude], { icon: completionIcon })
           .bindPopup(`<strong>Completion Photo</strong><br/>${photo.name}`)
           .on('click', () => {
-            onPhotoSelect?.('completion', photo);
-          })
-          .addTo(mapRef.current!);
+            if (photoMeasuring) {
+              handlePhotoMeasurement('completion', photo);
+            } else {
+              onPhotoSelect?.('completion', photo);
+            }
+          });
+        marker.addTo(mapRef.current!);
+        (marker as any)._photoData = { photo, type: 'completion' };
       }
     });
 
@@ -234,6 +251,98 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
     setSatelliteView(!satelliteView);
   };
 
+  // Handle photo distance measurement
+  const handlePhotoMeasurement = (type: string, photo: PhotoMetadata) => {
+    if (!selectedPhotoMarkers.first) {
+      setSelectedPhotoMarkers({ first: { photo, type } });
+      
+      // Highlight selected marker
+      mapRef.current?.eachLayer((layer) => {
+        if (layer instanceof L.Marker && (layer as any)._photoData?.photo === photo) {
+          layer.setIcon(L.divIcon({
+            className: 'selected-marker',
+            html: `<div style="
+              width: 24px; 
+              height: 24px; 
+              border-radius: 50%; 
+              background-color: #3b82f6; 
+              border: 3px solid white; 
+              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            "></div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+          }));
+        }
+      });
+    } else if (selectedPhotoMarkers.first.photo !== photo) {
+      // Calculate distance between photos
+      const first = selectedPhotoMarkers.first.photo;
+      if (first.location && photo.location) {
+        const distance = calculateDistance(
+          first.location.latitude, first.location.longitude,
+          photo.location.latitude, photo.location.longitude
+        );
+        
+        // Draw line
+        const polyline = L.polyline([
+          [first.location.latitude, first.location.longitude],
+          [photo.location.latitude, photo.location.longitude]
+        ], {
+          color: '#3b82f6',
+          weight: 3,
+          opacity: 0.8
+        }).addTo(measureLayerRef.current!);
+        
+        // Add distance label
+        const midpoint = polyline.getCenter();
+        L.marker(midpoint, {
+          icon: L.divIcon({
+            className: 'distance-label',
+            html: `<div style="background: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; border: 1px solid #3b82f6; color: #3b82f6;">${selectedPhotoMarkers.first.type} to ${type}: ${distance.toFixed(1)}m</div>`,
+            iconSize: [120, 20],
+            iconAnchor: [60, 10]
+          })
+        }).addTo(measureLayerRef.current!);
+      }
+      
+      // Reset selection
+      setSelectedPhotoMarkers({});
+      setPhotoMeasuring(false);
+      
+      // Restore original markers
+      if (photoSet) {
+        const allPhotos = [
+          ...photoSet.damagePhotos.map(p => ({ photo: p, type: 'damage' })),
+          ...photoSet.preconditionPhotos.map(p => ({ photo: p, type: 'precondition' })),
+          ...photoSet.completionPhotos.map(p => ({ photo: p, type: 'completion' }))
+        ];
+        
+        mapRef.current?.eachLayer((layer) => {
+          if (layer instanceof L.Marker && (layer as any)._photoData) {
+            const photoData = (layer as any)._photoData;
+            const createIcon = (color: string) => L.divIcon({
+              className: 'custom-marker',
+              html: `<div style="
+                width: 20px; 
+                height: 20px; 
+                border-radius: 50%; 
+                background-color: ${color}; 
+                border: 2px solid white; 
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              "></div>`,
+              iconSize: [20, 20],
+              iconAnchor: [10, 10]
+            });
+            
+            const iconColor = photoData.type === 'damage' ? '#ef4444' : 
+                             photoData.type === 'precondition' ? '#22c55e' : '#eab308';
+            layer.setIcon(createIcon(iconColor));
+          }
+        });
+      }
+    }
+  };
+
   // Handle manual measurement
   const toggleMeasurement = () => {
     if (!mapRef.current || !measureLayerRef.current) return;
@@ -253,27 +362,31 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
           firstPoint = e.latlng;
           isFirstClick = false;
           
-          // Add start marker
-          L.marker(firstPoint, {
+          // Add start marker with proper z-index
+          const startMarker = L.marker(firstPoint, {
             icon: L.divIcon({
               className: 'measure-marker',
-              html: '<div style="width: 8px; height: 8px; border-radius: 50%; background-color: #ef4444; border: 2px solid white;"></div>',
+              html: '<div style="width: 8px; height: 8px; border-radius: 50%; background-color: #ef4444; border: 2px solid white; z-index: 1000;"></div>',
               iconSize: [12, 12],
               iconAnchor: [6, 6]
-            })
+            }),
+            zIndexOffset: 1000
           }).addTo(measureLayerRef.current!);
+          (startMarker as any)._measureMarker = true;
         } else if (firstPoint) {
           // Add end marker and line
           const secondPoint = e.latlng;
           
-          L.marker(secondPoint, {
+          const endMarker = L.marker(secondPoint, {
             icon: L.divIcon({
               className: 'measure-marker',
-              html: '<div style="width: 8px; height: 8px; border-radius: 50%; background-color: #ef4444; border: 2px solid white;"></div>',
+              html: '<div style="width: 8px; height: 8px; border-radius: 50%; background-color: #ef4444; border: 2px solid white; z-index: 1000;"></div>',
               iconSize: [12, 12],
               iconAnchor: [6, 6]
-            })
+            }),
+            zIndexOffset: 1000
           }).addTo(measureLayerRef.current!);
+          (endMarker as any)._measureMarker = true;
           
           const distance = calculateDistance(
             firstPoint.lat, firstPoint.lng,
@@ -285,17 +398,20 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
             weight: 3,
             opacity: 0.8
           }).addTo(measureLayerRef.current!);
+          (polyline as any)._measureMarker = true;
           
           // Add distance label
           const midpoint = polyline.getCenter();
-          L.marker(midpoint, {
+          const distanceMarker = L.marker(midpoint, {
             icon: L.divIcon({
               className: 'distance-label',
-              html: `<div style="background: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; border: 1px solid #ef4444; color: #ef4444;">${distance.toFixed(1)}m</div>`,
+              html: `<div style="background: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; border: 1px solid #ef4444; color: #ef4444; z-index: 1000;">${distance.toFixed(1)}m</div>`,
               iconSize: [60, 20],
               iconAnchor: [30, 10]
-            })
+            }),
+            zIndexOffset: 1000
           }).addTo(measureLayerRef.current!);
+          (distanceMarker as any)._measureMarker = true;
           
           // Reset for next measurement
           firstPoint = null;
@@ -305,13 +421,52 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
     }
   };
 
+  // Toggle photo measurement mode
+  const togglePhotoMeasurement = () => {
+    setPhotoMeasuring(!photoMeasuring);
+    if (photoMeasuring) {
+      setSelectedPhotoMarkers({});
+      // Restore original markers if needed
+      if (photoSet) {
+        mapRef.current?.eachLayer((layer) => {
+          if (layer instanceof L.Marker && (layer as any)._photoData) {
+            const photoData = (layer as any)._photoData;
+            const createIcon = (color: string) => L.divIcon({
+              className: 'custom-marker',
+              html: `<div style="
+                width: 20px; 
+                height: 20px; 
+                border-radius: 50%; 
+                background-color: ${color}; 
+                border: 2px solid white; 
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              "></div>`,
+              iconSize: [20, 20],
+              iconAnchor: [10, 10]
+            });
+            
+            const iconColor = photoData.type === 'damage' ? '#ef4444' : 
+                             photoData.type === 'precondition' ? '#22c55e' : '#eab308';
+            layer.setIcon(createIcon(iconColor));
+          }
+        });
+      }
+    }
+  };
+
   // Clear all measurements
   const clearMeasurements = () => {
     if (measureLayerRef.current) {
-      measureLayerRef.current.clearLayers();
+      // Only clear manual measurements, preserve auto-distance
+      measureLayerRef.current.eachLayer((layer) => {
+        if (!(layer as any)._autoDistance) {
+          measureLayerRef.current!.removeLayer(layer);
+        }
+      });
     }
-    setAutoDistance(null);
     setMeasuring(false);
+    setPhotoMeasuring(false);
+    setSelectedPhotoMarkers({});
     if (mapRef.current) {
       mapRef.current.off('click');
     }
@@ -361,6 +516,7 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
               size="sm"
               onClick={toggleMeasurement}
               className={`text-primary-foreground hover:bg-primary-foreground/20 ${measuring ? 'bg-primary-foreground/20' : ''}`}
+              title="Manual ruler measurement"
             >
               <Ruler className="w-4 h-4" />
             </Button>
@@ -368,8 +524,19 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
             <Button
               variant="ghost"
               size="sm"
+              onClick={togglePhotoMeasurement}
+              className={`text-primary-foreground hover:bg-primary-foreground/20 ${photoMeasuring ? 'bg-primary-foreground/20' : ''}`}
+              title="Measure between photos"
+            >
+              <MousePointer2 className="w-4 h-4" />
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={clearMeasurements}
               className="text-primary-foreground hover:bg-primary-foreground/20"
+              title="Clear measurements"
             >
               Clear
             </Button>

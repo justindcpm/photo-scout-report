@@ -284,6 +284,15 @@ export const DamageReportViewer = () => {
               onToggleReportGenerator={() => setShowReportGenerator(!showReportGenerator)}
               showReportGenerator={showReportGenerator}
             />
+            
+            {/* Inline Approval Controls */}
+            {currentSet && (
+              <ApprovalControls
+                damageId={currentSet.damageId}
+                approval={state.approvals[currentSet.damageId]}
+                onApprovalChange={handleApprovalChange}
+              />
+            )}
 
             {/* Report Generator */}
             {showReportGenerator && (
@@ -299,12 +308,6 @@ export const DamageReportViewer = () => {
               />
             )}
 
-            {/* Approval Controls */}
-            <ApprovalControls
-              damageId={currentSet.damageId}
-              approval={state.approvals[currentSet.damageId]}
-              onApprovalChange={handleApprovalChange}
-            />
 
             {/* Photo Galleries */}
             <div className={`grid gap-4 h-[700px] ${
