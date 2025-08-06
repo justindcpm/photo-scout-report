@@ -4,7 +4,8 @@ import { ReportHeader } from './ReportHeader';
 import { PhotoGallery } from './PhotoGallery';
 import { DamageMap } from './DamageMap';
 import { ReportGenerator } from './ReportGenerator';
-import { PhotoSet, GalleryType, DamageReportState, PhotoMetadata } from '@/types/damage-report';
+import { ApprovalControls } from './ApprovalControls';
+import { PhotoSet, GalleryType, DamageReportState, PhotoMetadata, PhotoSetApproval } from '@/types/damage-report';
 import { processFolderStructure } from '@/utils/photo-processing';
 import { toast } from 'sonner';
 
@@ -19,7 +20,8 @@ export const DamageReportViewer = () => {
       completion: { visible: true, rotation: 0, zoom: 1, panX: 0, panY: 0, candidatePhotos: [] }
     },
     searchTerm: '',
-    mapVisible: true
+    mapVisible: true,
+    approvals: {}
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [showReportGenerator, setShowReportGenerator] = useState(false);
@@ -74,7 +76,8 @@ export const DamageReportViewer = () => {
           }
         },
         searchTerm: '',
-        mapVisible: true
+        mapVisible: true,
+        approvals: {}
       };
 
       setState(newState);
@@ -226,8 +229,20 @@ export const DamageReportViewer = () => {
         completion: { visible: true, rotation: 0, zoom: 1, panX: 0, panY: 0, candidatePhotos: [] }
       },
       searchTerm: '',
-      mapVisible: true
+      mapVisible: true,
+      approvals: {}
     });
+  }, []);
+
+  const handleApprovalChange = useCallback((damageId: string, approval: PhotoSetApproval) => {
+    setState(prev => ({
+      ...prev,
+      approvals: {
+        ...prev.approvals,
+        [damageId]: approval
+      }
+    }));
+    toast.success(`Assessment updated for ${damageId}`);
   }, []);
 
   const currentSet = state.photoSets[state.currentSetIndex];
@@ -283,6 +298,13 @@ export const DamageReportViewer = () => {
                 onPhotoSelect={handlePhotoSelect}
               />
             )}
+
+            {/* Approval Controls */}
+            <ApprovalControls
+              damageId={currentSet.damageId}
+              approval={state.approvals[currentSet.damageId]}
+              onApprovalChange={handleApprovalChange}
+            />
 
             {/* Photo Galleries */}
             <div className={`grid gap-4 h-[700px] ${

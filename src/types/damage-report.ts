@@ -36,6 +36,12 @@ export interface GalleryState {
   panY: number;
 }
 
+export interface PhotoSetApproval {
+  status: 'pending' | 'approved' | 'query' | 'rejected';
+  comments: string;
+  timestamp: Date;
+}
+
 export interface DamageReportState {
   photoSets: PhotoSet[];
   currentSetIndex: number;
@@ -47,6 +53,7 @@ export interface DamageReportState {
   };
   searchTerm: string;
   mapVisible: boolean;
+  approvals: Record<string, PhotoSetApproval>;
 }
 
 export type PhotoType = 'precondition' | 'damage' | 'completion';

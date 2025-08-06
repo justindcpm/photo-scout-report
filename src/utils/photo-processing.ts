@@ -4,7 +4,7 @@ import { PhotoMetadata, PhotoSet, PhotoLocation } from '@/types/damage-report';
 /**
  * Calculate distance between two GPS coordinates using Haversine formula
  */
-function calculateDistance(
+export function calculateDistance(
   lat1: number, 
   lon1: number, 
   lat2: number, 
