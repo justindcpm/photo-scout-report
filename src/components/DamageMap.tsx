@@ -505,8 +505,8 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
   if (!visible) return null;
 
   return (
-    <Card className="h-96 overflow-hidden shadow-map">
-      <div className="p-3 border-b bg-gradient-header text-primary-foreground">
+    <Card className="h-96 overflow-hidden shadow-map relative">
+      <div className="p-3 border-b bg-gradient-header text-primary-foreground relative z-50">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-semibold">Photo Locations & Measurements</h3>
@@ -531,7 +531,7 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
             </div>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-2 relative z-50">
             <Button
               variant="ghost"
               size="sm"
@@ -573,7 +573,7 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
           </div>
         </div>
       </div>
-      <div ref={mapContainerRef} className="h-full w-full" />
+      <div ref={mapContainerRef} className="h-full w-full relative z-10" />
     </Card>
   );
 };
