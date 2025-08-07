@@ -5,12 +5,13 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { PhotoSet } from '@/types/damage-report';
+import { PhotoSet, PhotoSetApproval } from '@/types/damage-report';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 
 interface ReportGeneratorProps {
   photoSets: PhotoSet[];
+  approvals?: Record<string, PhotoSetApproval>;
 }
 
 type ReportStatus = 'pending' | 'checked' | 'needs-review';
@@ -21,7 +22,7 @@ interface ReportData {
   comments: string;
 }
 
-export const ReportGenerator = ({ photoSets }: ReportGeneratorProps) => {
+export const ReportGenerator = ({ photoSets, approvals = {} }: ReportGeneratorProps) => {
   const [reportData, setReportData] = useState<Record<string, ReportData>>({});
   const [globalComments, setGlobalComments] = useState('');
 
@@ -58,15 +59,23 @@ export const ReportGenerator = ({ photoSets }: ReportGeneratorProps) => {
   const generateExcelReport = () => {
     const worksheetData = photoSets.map(photoSet => {
       const data = reportData[photoSet.damageId] || { status: 'pending', comments: '' };
+      const approval = approvals[photoSet.damageId];
+      
+      // Use approval status if available, otherwise use report data
+      const finalStatus = approval ? approval.status : data.status;
+      const finalComments = approval ? approval.comments : data.comments;
+      
       return {
         'Report ID': photoSet.damageId,
         'Folder Path': photoSet.damageId,
-        'Status': getStatusLabel(data.status),
+        'Status': getStatusLabel(finalStatus as ReportStatus),
+        'Assessment Status': approval ? approval.status : 'Not Assessed',
         'Precondition Photos': photoSet.preconditionPhotos.length,
         'Damage Photos': photoSet.damagePhotos.length,
         'Completion Photos': photoSet.completionPhotos.length,
         'Total Photos': photoSet.preconditionPhotos.length + photoSet.damagePhotos.length + photoSet.completionPhotos.length,
-        'Comments': data.comments,
+        'Comments': finalComments,
+        'Assessment Date': approval ? approval.timestamp.toLocaleDateString() : '',
         'Generated Date': new Date().toLocaleDateString(),
         'Generated Time': new Date().toLocaleTimeString()
       };
@@ -82,11 +91,13 @@ export const ReportGenerator = ({ photoSets }: ReportGeneratorProps) => {
       'Report ID': 'SUMMARY',
       'Folder Path': `Total Reports: ${totalReports}`,
       'Status': `Checked: ${checkedCount}, Review: ${reviewCount}, Pending: ${pendingCount}`,
+      'Assessment Status': 'Summary',
       'Precondition Photos': 0,
       'Damage Photos': 0,
       'Completion Photos': 0,
       'Total Photos': 0,
       'Comments': globalComments,
+      'Assessment Date': '',
       'Generated Date': '',
       'Generated Time': ''
     });

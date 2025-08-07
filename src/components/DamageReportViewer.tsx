@@ -296,7 +296,7 @@ export const DamageReportViewer = () => {
 
             {/* Report Generator */}
             {showReportGenerator && (
-              <ReportGenerator photoSets={state.photoSets} />
+              <ReportGenerator photoSets={state.photoSets} approvals={state.approvals} />
             )}
 
             {/* Map */}

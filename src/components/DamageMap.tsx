@@ -348,16 +348,24 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
     if (!mapRef.current || !measureLayerRef.current) return;
     
     if (measuring) {
-      // Stop measuring
+      // Stop measuring - remove all event listeners and reset state
       mapRef.current.off('click');
       setMeasuring(false);
+      
+      // Clear any partial measurements
+      measureLayerRef.current.eachLayer((layer) => {
+        if ((layer as any)._measureMarker && !(layer as any)._measureDistance) {
+          measureLayerRef.current!.removeLayer(layer);
+        }
+      });
     } else {
       // Start measuring
       let isFirstClick = true;
       let firstPoint: L.LatLng | null = null;
       
       setMeasuring(true);
-      mapRef.current.on('click', (e: L.LeafletMouseEvent) => {
+      
+      const handleMapClick = (e: L.LeafletMouseEvent) => {
         if (isFirstClick) {
           firstPoint = e.latlng;
           isFirstClick = false;
@@ -399,6 +407,7 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
             opacity: 0.8
           }).addTo(measureLayerRef.current!);
           (polyline as any)._measureMarker = true;
+          (polyline as any)._measureDistance = true;
           
           // Add distance label
           const midpoint = polyline.getCenter();
@@ -412,12 +421,15 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
             zIndexOffset: 1000
           }).addTo(measureLayerRef.current!);
           (distanceMarker as any)._measureMarker = true;
+          (distanceMarker as any)._measureDistance = true;
           
           // Reset for next measurement
           firstPoint = null;
           isFirstClick = true;
         }
-      });
+      };
+      
+      mapRef.current.on('click', handleMapClick);
     }
   };
 
@@ -464,12 +476,15 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
         }
       });
     }
-    setMeasuring(false);
-    setPhotoMeasuring(false);
-    setSelectedPhotoMarkers({});
+    
+    // Properly stop all measurement modes
     if (mapRef.current) {
       mapRef.current.off('click');
     }
+    
+    setMeasuring(false);
+    setPhotoMeasuring(false);
+    setSelectedPhotoMarkers({});
   };
 
   if (!visible) return null;
