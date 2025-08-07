@@ -191,6 +191,16 @@ export const ReportGenerator = ({ photoSets, approvals = {} }: ReportGeneratorPr
         <div className="space-y-3 max-h-96 overflow-y-auto">
           {photoSets.map((photoSet) => {
             const data = reportData[photoSet.damageId] || { status: 'pending', comments: '' };
+            const approval = approvals[photoSet.damageId];
+            
+            // Use approval status if available, otherwise use local report data
+            const displayStatus = approval ? (
+              approval.status === 'approved' ? 'checked' : 
+              approval.status === 'rejected' ? 'needs-review' : 'pending'
+            ) : data.status;
+            
+            const displayComments = approval ? approval.comments : data.comments;
+            
             return (
               <div key={photoSet.damageId} className="flex items-start gap-4 p-3 border rounded-lg">
                 <div className="flex-1 min-w-0">
@@ -198,9 +208,15 @@ export const ReportGenerator = ({ photoSets, approvals = {} }: ReportGeneratorPr
                     <div className="font-medium truncate" title={photoSet.damageId}>
                       {photoSet.damageId}
                     </div>
-                    <Badge className={getStatusColor(data.status)}>
-                      {getStatusLabel(data.status)}
+                    <Badge className={getStatusColor(displayStatus)}>
+                      {getStatusLabel(displayStatus)}
                     </Badge>
+                    {approval && (
+                      <Badge variant="outline" className="text-xs">
+                        {approval.status === 'approved' ? 'Approved' : 
+                         approval.status === 'rejected' ? 'Rejected' : 'Queried'}
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground truncate" title={photoSet.damageId}>
                     {photoSet.damageId}
@@ -212,8 +228,9 @@ export const ReportGenerator = ({ photoSets, approvals = {} }: ReportGeneratorPr
                 
                 <div className="flex flex-col gap-2 min-w-0 flex-1">
                   <Select
-                    value={data.status}
+                    value={displayStatus}
                     onValueChange={(value: ReportStatus) => updateReportStatus(photoSet.damageId, value)}
+                    disabled={!!approval}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue />
@@ -227,10 +244,16 @@ export const ReportGenerator = ({ photoSets, approvals = {} }: ReportGeneratorPr
                   
                   <Textarea
                     placeholder="Add comments..."
-                    value={data.comments}
+                    value={displayComments}
                     onChange={(e) => updateReportComments(photoSet.damageId, e.target.value)}
                     className="min-h-[60px] resize-none text-sm"
+                    disabled={!!approval}
                   />
+                  {approval && (
+                    <div className="text-xs text-muted-foreground">
+                      Status set by assessment controls
+                    </div>
+                  )}
                 </div>
               </div>
             );
