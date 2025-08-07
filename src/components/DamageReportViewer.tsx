@@ -242,7 +242,15 @@ export const DamageReportViewer = () => {
         [damageId]: approval
       }
     }));
-    toast.success(`Assessment updated for ${damageId}`);
+    
+    const statusText = approval.status === 'approved' ? 'Approved' : 
+                      approval.status === 'rejected' ? 'Rejected' : 'Queried';
+    toast.success(`Assessment updated: ${statusText} for ${damageId}`);
+    
+    // Force a re-render to ensure UI updates
+    setTimeout(() => {
+      setState(prev => ({ ...prev }));
+    }, 100);
   }, []);
 
   const currentSet = state.photoSets[state.currentSetIndex];

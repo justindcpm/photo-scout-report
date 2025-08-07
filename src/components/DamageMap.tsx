@@ -134,7 +134,12 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
       if (photo.location) {
         const marker = L.marker([photo.location.latitude, photo.location.longitude], { icon: damageIcon })
           .bindPopup(`<strong>Damage Photo</strong><br/>${photo.name}`)
-          .on('click', () => {
+          .on('click', (e) => {
+            // Prevent map click event when clicking on markers during measurement
+            if (measuring || photoMeasuring) {
+              L.DomEvent.stopPropagation(e);
+            }
+            
             if (photoMeasuring) {
               handlePhotoMeasurement('damage', photo);
             } else {
@@ -150,7 +155,12 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
       if (photo.location) {
         const marker = L.marker([photo.location.latitude, photo.location.longitude], { icon: preconditionIcon })
           .bindPopup(`<strong>Precondition Photo</strong><br/>${photo.name}`)
-          .on('click', () => {
+          .on('click', (e) => {
+            // Prevent map click event when clicking on markers during measurement
+            if (measuring || photoMeasuring) {
+              L.DomEvent.stopPropagation(e);
+            }
+            
             if (photoMeasuring) {
               handlePhotoMeasurement('precondition', photo);
             } else {
@@ -166,7 +176,12 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
       if (photo.location) {
         const marker = L.marker([photo.location.latitude, photo.location.longitude], { icon: completionIcon })
           .bindPopup(`<strong>Completion Photo</strong><br/>${photo.name}`)
-          .on('click', () => {
+          .on('click', (e) => {
+            // Prevent map click event when clicking on markers during measurement
+            if (measuring || photoMeasuring) {
+              L.DomEvent.stopPropagation(e);
+            }
+            
             if (photoMeasuring) {
               handlePhotoMeasurement('completion', photo);
             } else {
