@@ -302,8 +302,10 @@ export const DamageReportViewer = () => {
               />
             )}
 
-            {/* Report Generator - Always visible as single page */}
-            <ReportGenerator photoSets={state.photoSets} approvals={state.approvals} />
+            {/* Report Generator */}
+            {showReportGenerator && (
+              <ReportGenerator photoSets={state.photoSets} approvals={state.approvals} />
+            )}
 
             {/* Map */}
             {state.mapVisible && (

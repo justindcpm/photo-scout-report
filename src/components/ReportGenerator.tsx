@@ -62,13 +62,15 @@ export const ReportGenerator = ({ photoSets, approvals = {} }: ReportGeneratorPr
       const approval = approvals[photoSet.damageId];
       
       // Use approval status if available, otherwise use report data
-      const finalStatus = approval ? approval.status : data.status;
+      const finalDisplayStatus: ReportStatus = approval
+        ? (approval.status === 'approved' ? 'checked' : approval.status === 'rejected' ? 'needs-review' : 'pending')
+        : (data.status as ReportStatus);
       const finalComments = approval ? approval.comments : data.comments;
       
       return {
         'Report ID': photoSet.damageId,
         'Folder Path': photoSet.damageId,
-        'Status': getStatusLabel(finalStatus as ReportStatus),
+        'Status': getStatusLabel(finalDisplayStatus),
         'Assessment Status': approval ? approval.status : 'Not Assessed',
         'Precondition Photos': photoSet.preconditionPhotos.length,
         'Damage Photos': photoSet.damagePhotos.length,
@@ -81,11 +83,25 @@ export const ReportGenerator = ({ photoSets, approvals = {} }: ReportGeneratorPr
       };
     });
 
-    // Add summary row
+    // Add summary row (respect approvals)
+    let checkedCount = 0;
+    let reviewCount = 0;
+    let pendingCount = 0;
+    photoSets.forEach((ps) => {
+      const approval = approvals[ps.damageId];
+      const local = reportData[ps.damageId];
+      const st: ReportStatus = approval
+        ? approval.status === 'approved'
+          ? 'checked'
+          : approval.status === 'rejected'
+          ? 'needs-review'
+          : 'pending'
+        : (local?.status || 'pending');
+      if (st === 'checked') checkedCount++;
+      else if (st === 'needs-review') reviewCount++;
+      else pendingCount++;
+    });
     const totalReports = photoSets.length;
-    const checkedCount = Object.values(reportData).filter(r => r.status === 'checked').length;
-    const reviewCount = Object.values(reportData).filter(r => r.status === 'needs-review').length;
-    const pendingCount = totalReports - checkedCount - reviewCount;
 
     worksheetData.unshift({
       'Report ID': 'SUMMARY',
@@ -128,12 +144,28 @@ export const ReportGenerator = ({ photoSets, approvals = {} }: ReportGeneratorPr
   };
 
   const getCompletionStats = () => {
-    const total = photoSets.length;
-    const checked = Object.values(reportData).filter(r => r.status === 'checked').length;
-    const review = Object.values(reportData).filter(r => r.status === 'needs-review').length;
-    const pending = total - checked - review;
-    
-    return { total, checked, review, pending };
+    let checked = 0;
+    let review = 0;
+    let pending = 0;
+
+    photoSets.forEach((ps) => {
+      const data = reportData[ps.damageId] || { status: 'pending' as ReportStatus };
+      const approval = approvals[ps.damageId];
+
+      const displayStatus: ReportStatus = approval
+        ? approval.status === 'approved'
+          ? 'checked'
+          : approval.status === 'rejected'
+          ? 'needs-review'
+          : 'pending'
+        : (data.status as ReportStatus);
+
+      if (displayStatus === 'checked') checked++;
+      else if (displayStatus === 'needs-review') review++;
+      else pending++;
+    });
+
+    return { total: photoSets.length, checked, review, pending };
   };
 
   const stats = getCompletionStats();

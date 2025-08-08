@@ -532,60 +532,58 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
             </div>
           </div>
           
-          <div className="flex gap-2 relative z-50">
+          <div className="flex gap-2 relative z-50" />
+        </div>
+      </div>
+      <div className="absolute top-3 right-3 z-[1200] flex gap-2 pointer-events-auto">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setEditorMode(!editorMode)}
+          className={`${editorMode ? 'opacity-90' : ''}`}
+        >
+          {editorMode ? 'Exit Editor' : 'Editor Mode'}
+        </Button>
+        {editorMode && (
+          <>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setEditorMode(!editorMode)}
-              className={`text-primary-foreground hover:bg-primary-foreground/20 ${editorMode ? 'bg-primary-foreground/20' : ''}`}
+              onClick={toggleSatelliteView}
+              className={`bg-background/70 text-foreground hover:bg-background/90 ${satelliteView ? 'opacity-90' : ''}`}
+              title="Toggle base map"
             >
-              {editorMode ? 'Exit Editor' : 'Editor Mode'}
+              {satelliteView ? <MapIcon className="w-4 h-4" /> : <Satellite className="w-4 h-4" />}
             </Button>
-            
-            {editorMode && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleSatelliteView}
-                  className={`text-primary-foreground hover:bg-primary-foreground/20 ${satelliteView ? 'bg-primary-foreground/20' : ''}`}
-                >
-                  {satelliteView ? <MapIcon className="w-4 h-4" /> : <Satellite className="w-4 h-4" />}
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleMeasurement}
-                  className={`text-primary-foreground hover:bg-primary-foreground/20 ${measuring ? 'bg-primary-foreground/20' : ''}`}
-                  title="Manual ruler measurement"
-                >
-                  <Ruler className="w-4 h-4" />
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={togglePhotoMeasurement}
-                  className={`text-primary-foreground hover:bg-primary-foreground/20 ${photoMeasuring ? 'bg-primary-foreground/20' : ''}`}
-                  title="Measure between photos"
-                >
-                  <MousePointer2 className="w-4 h-4" />
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearMeasurements}
-                  className="text-primary-foreground hover:bg-primary-foreground/20"
-                  title="Clear measurements"
-                >
-                  Clear
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleMeasurement}
+              className={`bg-background/70 text-foreground hover:bg-background/90 ${measuring ? 'opacity-90' : ''}`}
+              title="Manual ruler"
+            >
+              <Ruler className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={togglePhotoMeasurement}
+              className={`bg-background/70 text-foreground hover:bg-background/90 ${photoMeasuring ? 'opacity-90' : ''}`}
+              title="Photo distance"
+            >
+              <MousePointer2 className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearMeasurements}
+              className="bg-background/70 text-foreground hover:bg-background/90"
+              title="Clear measurements"
+            >
+              Clear
+            </Button>
+          </>
+        )}
       </div>
       <div ref={mapContainerRef} className="h-full w-full relative z-10" />
     </Card>
