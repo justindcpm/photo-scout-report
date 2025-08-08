@@ -8,6 +8,7 @@ import { ApprovalControls } from './ApprovalControls';
 import { PhotoSet, GalleryType, DamageReportState, PhotoMetadata, PhotoSetApproval } from '@/types/damage-report';
 import { processFolderStructure } from '@/utils/photo-processing';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export const DamageReportViewer = () => {
   const [state, setState] = useState<DamageReportState>({
@@ -302,10 +303,15 @@ export const DamageReportViewer = () => {
               />
             )}
 
-            {/* Report Generator */}
-            {showReportGenerator && (
-              <ReportGenerator photoSets={state.photoSets} approvals={state.approvals} />
-            )}
+            {/* Report Generator Modal */}
+            <Dialog open={showReportGenerator} onOpenChange={setShowReportGenerator}>
+              <DialogContent className="max-w-6xl sm:max-w-7xl z-[1200]">
+                <DialogHeader>
+                  <DialogTitle>Assessment Report Generator</DialogTitle>
+                </DialogHeader>
+                <ReportGenerator photoSets={state.photoSets} approvals={state.approvals} />
+              </DialogContent>
+            </Dialog>
 
             {/* Map */}
             {state.mapVisible && (

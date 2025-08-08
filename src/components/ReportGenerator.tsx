@@ -267,7 +267,7 @@ export const ReportGenerator = ({ photoSets, approvals = {} }: ReportGeneratorPr
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[1300] bg-background" position="popper">
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="checked">Checked</SelectItem>
                       <SelectItem value="needs-review">Needs Review</SelectItem>

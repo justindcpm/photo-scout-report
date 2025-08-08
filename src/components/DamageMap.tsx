@@ -31,6 +31,16 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
   const [editorMode, setEditorMode] = useState(false);
   const measureLayerRef = useRef<L.LayerGroup | null>(null);
 
+  // Persist editor mode across re-mounts so tools don't "disappear"
+  useEffect(() => {
+    const saved = localStorage.getItem('dm_editor_mode');
+    if (saved === '1') setEditorMode(true);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('dm_editor_mode', editorMode ? '1' : '0');
+  }, [editorMode]);
+
   // Debug logging
   console.log('DamageMap render:', { 
     photoSet: photoSet?.damageId, 
