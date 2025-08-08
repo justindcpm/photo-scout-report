@@ -28,6 +28,7 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
   const [photoMeasuring, setPhotoMeasuring] = useState(false);
   const [autoDistance, setAutoDistance] = useState<number | null>(null);
   const [selectedPhotoMarkers, setSelectedPhotoMarkers] = useState<{first?: {photo: PhotoMetadata, type: string}, second?: {photo: PhotoMetadata, type: string}}>({});
+  const [editorMode, setEditorMode] = useState(false);
   const measureLayerRef = useRef<L.LayerGroup | null>(null);
 
   // Debug logging
@@ -524,8 +525,8 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
                 <span>Completion</span>
               </div>
               {autoDistance && (
-                <div className="flex items-center gap-1 ml-4">
-                  <span>Auto Distance: {autoDistance.toFixed(1)}m</span>
+                <div className="flex items-center gap-1 ml-4 bg-primary-foreground/10 px-2 py-1 rounded">
+                  <span className="font-medium">Auto Distance: {autoDistance.toFixed(1)}m</span>
                 </div>
               )}
             </div>
@@ -535,41 +536,54 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
             <Button
               variant="ghost"
               size="sm"
-              onClick={toggleSatelliteView}
-              className={`text-primary-foreground hover:bg-primary-foreground/20 ${satelliteView ? 'bg-primary-foreground/20' : ''}`}
+              onClick={() => setEditorMode(!editorMode)}
+              className={`text-primary-foreground hover:bg-primary-foreground/20 ${editorMode ? 'bg-primary-foreground/20' : ''}`}
             >
-              {satelliteView ? <MapIcon className="w-4 h-4" /> : <Satellite className="w-4 h-4" />}
+              {editorMode ? 'Exit Editor' : 'Editor Mode'}
             </Button>
             
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleMeasurement}
-              className={`text-primary-foreground hover:bg-primary-foreground/20 ${measuring ? 'bg-primary-foreground/20' : ''}`}
-              title="Manual ruler measurement"
-            >
-              <Ruler className="w-4 h-4" />
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={togglePhotoMeasurement}
-              className={`text-primary-foreground hover:bg-primary-foreground/20 ${photoMeasuring ? 'bg-primary-foreground/20' : ''}`}
-              title="Measure between photos"
-            >
-              <MousePointer2 className="w-4 h-4" />
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearMeasurements}
-              className="text-primary-foreground hover:bg-primary-foreground/20"
-              title="Clear measurements"
-            >
-              Clear
-            </Button>
+            {editorMode && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSatelliteView}
+                  className={`text-primary-foreground hover:bg-primary-foreground/20 ${satelliteView ? 'bg-primary-foreground/20' : ''}`}
+                >
+                  {satelliteView ? <MapIcon className="w-4 h-4" /> : <Satellite className="w-4 h-4" />}
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleMeasurement}
+                  className={`text-primary-foreground hover:bg-primary-foreground/20 ${measuring ? 'bg-primary-foreground/20' : ''}`}
+                  title="Manual ruler measurement"
+                >
+                  <Ruler className="w-4 h-4" />
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={togglePhotoMeasurement}
+                  className={`text-primary-foreground hover:bg-primary-foreground/20 ${photoMeasuring ? 'bg-primary-foreground/20' : ''}`}
+                  title="Measure between photos"
+                >
+                  <MousePointer2 className="w-4 h-4" />
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearMeasurements}
+                  className="text-primary-foreground hover:bg-primary-foreground/20"
+                  title="Clear measurements"
+                >
+                  Clear
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
