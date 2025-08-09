@@ -42,8 +42,8 @@ export const ReportHeader = ({
   );
 
   return (
-    <Card className="p-4 bg-gradient-header text-primary-foreground shadow-card">
-      <div className="flex flex-col gap-4">
+    <Card className="p-2 bg-gradient-header text-primary-foreground shadow-card">
+      <div className="flex flex-col gap-2">
         {/* Top row: Title and controls */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -59,7 +59,7 @@ export const ReportHeader = ({
             <div className="w-8 h-8 bg-primary-foreground/20 rounded-lg flex items-center justify-center">
               <Search className="w-4 h-4" />
             </div>
-            <h1 className="text-xl font-bold">DCPM Damage Report Viewer</h1>
+            <h1 className="text-lg font-bold">DCPM Damage Report Viewer</h1>
           </div>
           
           <div className="flex gap-2">
@@ -86,7 +86,7 @@ export const ReportHeader = ({
         </div>
 
         {/* Middle row: Search and navigation */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <div className="flex-1 max-w-md relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -132,7 +132,7 @@ export const ReportHeader = ({
         {currentSet && (
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <h2 className="text-lg font-semibold">Report: {currentSet.damageId}</h2>
+              <h2 className="text-base font-semibold">Report: {currentSet.damageId}</h2>
               <div className="text-sm text-primary-foreground/80 flex gap-4">
                 <span>Damage: {currentSet.damagePhotos.length} photos</span>
                 <span>Precondition: {currentSet.preconditionPhotos.length} photos</span>
@@ -140,7 +140,7 @@ export const ReportHeader = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Gallery View:</span>
               {(['precondition', 'damage', 'completion'] as GalleryType[]).map((gallery) => (
                 <div key={gallery} className="flex items-center gap-2">

@@ -279,7 +279,7 @@ const [isProcessing, setIsProcessing] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-4 space-y-4">
+      <div className="container mx-auto p-4 space-y-2">
         {/* Upload Section or Header */}
         {state.photoSets.length === 0 ? (
           <div className="flex items-center justify-center min-h-[60vh]">

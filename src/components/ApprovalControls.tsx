@@ -56,10 +56,10 @@ export const ApprovalControls = ({ damageId, approval, onApprovalChange }: Appro
   };
 
   return (
-    <Card className="p-4 bg-card border shadow-sm">
-      <div className="space-y-3">
+    <Card className="p-2 bg-card border shadow-sm">
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h4 className="font-medium text-foreground">Assessment Status</h4>
+          <h4 className="font-medium text-sm text-foreground">Assessment Status</h4>
           {approval && (
             <Badge variant="outline" className={`${getStatusColor(approval.status)} text-white border-none`}>
               <div className="flex items-center gap-1">
@@ -70,7 +70,7 @@ export const ApprovalControls = ({ damageId, approval, onApprovalChange }: Appro
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <Button
             variant="outline"
             size="sm"
@@ -117,7 +117,7 @@ export const ApprovalControls = ({ damageId, approval, onApprovalChange }: Appro
               placeholder="Add assessment comments..."
               value={comments}
               onChange={(e) => setComments(e.target.value)}
-              className="min-h-[80px] resize-none"
+              className="min-h-[64px] resize-none"
             />
             {showComments && (
               <div className="flex gap-2">
