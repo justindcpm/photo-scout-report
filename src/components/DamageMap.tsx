@@ -1,8 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import L from 'leaflet';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Ruler, Satellite, Map as MapIcon, MousePointer2 } from 'lucide-react';
 import { PhotoSet, PhotoMetadata } from '@/types/damage-report';
 import { calculateDistance } from '@/utils/photo-processing';
 
@@ -20,7 +18,16 @@ interface DamageMapProps {
   onPhotoSelect?: (type: 'damage' | 'precondition' | 'completion', photo: PhotoMetadata) => void;
 }
 
-export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) => {
+export type DamageMapHandle = {
+  toggleSatelliteView: () => void;
+  toggleMeasurement: () => void;
+  togglePhotoMeasurement: () => void;
+  clearMeasurements: () => void;
+  setEditorMode: (v: boolean) => void;
+  getState: () => { satelliteView: boolean; measuring: boolean; photoMeasuring: boolean; editorMode: boolean };
+};
+
+export const DamageMap = forwardRef<DamageMapHandle, DamageMapProps>(({ photoSet, visible, onPhotoSelect }, ref) => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [satelliteView, setSatelliteView] = useState(false);
@@ -513,6 +520,15 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
     setSelectedPhotoMarkers({});
   };
 
+  useImperativeHandle(ref, () => ({
+    toggleSatelliteView,
+    toggleMeasurement,
+    togglePhotoMeasurement,
+    clearMeasurements,
+    setEditorMode: (v: boolean) => setEditorMode(v),
+    getState: () => ({ satelliteView, measuring, photoMeasuring, editorMode })
+  }));
+  
   if (!visible) return null;
 
   return (
@@ -545,57 +561,7 @@ export const DamageMap = ({ photoSet, visible, onPhotoSelect }: DamageMapProps) 
           <div className="flex gap-2 relative z-50" />
         </div>
       </div>
-      <div className="absolute top-3 right-3 z-[1200] flex gap-2 pointer-events-auto">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => setEditorMode(!editorMode)}
-          className={`${editorMode ? 'opacity-90' : ''}`}
-        >
-          {editorMode ? 'Exit Editor' : 'Editor Mode'}
-        </Button>
-        {editorMode && (
-          <>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleSatelliteView}
-              className={`bg-background/70 text-foreground hover:bg-background/90 ${satelliteView ? 'opacity-90' : ''}`}
-              title="Toggle base map"
-            >
-              {satelliteView ? <MapIcon className="w-4 h-4" /> : <Satellite className="w-4 h-4" />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleMeasurement}
-              className={`bg-background/70 text-foreground hover:bg-background/90 ${measuring ? 'opacity-90' : ''}`}
-              title="Manual ruler"
-            >
-              <Ruler className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={togglePhotoMeasurement}
-              className={`bg-background/70 text-foreground hover:bg-background/90 ${photoMeasuring ? 'opacity-90' : ''}`}
-              title="Photo distance"
-            >
-              <MousePointer2 className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearMeasurements}
-              className="bg-background/70 text-foreground hover:bg-background/90"
-              title="Clear measurements"
-            >
-              Clear
-            </Button>
-          </>
-        )}
-      </div>
       <div ref={mapContainerRef} className="h-full w-full relative z-10" />
     </Card>
   );
-};
+});

@@ -1,14 +1,17 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { ReportUploader } from './ReportUploader';
 import { ReportHeader } from './ReportHeader';
 import { PhotoGallery } from './PhotoGallery';
 import { DamageMap } from './DamageMap';
+import type { DamageMapHandle } from './DamageMap';
 import { ReportGenerator } from './ReportGenerator';
 import { ApprovalControls } from './ApprovalControls';
 import { PhotoSet, GalleryType, DamageReportState, PhotoMetadata, PhotoSetApproval } from '@/types/damage-report';
 import { processFolderStructure } from '@/utils/photo-processing';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Ruler, Satellite, MousePointer2 } from 'lucide-react';
 
 export const DamageReportViewer = () => {
   const [state, setState] = useState<DamageReportState>({
@@ -24,8 +27,19 @@ export const DamageReportViewer = () => {
     mapVisible: true,
     approvals: {}
   });
-  const [isProcessing, setIsProcessing] = useState(false);
+const [isProcessing, setIsProcessing] = useState(false);
   const [showReportGenerator, setShowReportGenerator] = useState(false);
+  const mapRef = useRef<DamageMapHandle | null>(null);
+  const [editorMode, setEditorMode] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('dm_editor_mode');
+    if (saved === '1') setEditorMode(true);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('dm_editor_mode', editorMode ? '1' : '0');
+  }, [editorMode]);
 
   const handleFilesSelected = useCallback(async (files: FileList) => {
     setIsProcessing(true);
@@ -313,9 +327,61 @@ export const DamageReportViewer = () => {
               </DialogContent>
             </Dialog>
 
+            {/* Map Tools (outside the map) */}
+            <div className="flex justify-end gap-2 mb-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setEditorMode(!editorMode)}
+              >
+                {editorMode ? 'Hide Tools' : 'Editor Mode'}
+              </Button>
+              {editorMode && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => mapRef.current?.toggleSatelliteView()}
+                    title="Toggle base map"
+                    className="bg-background/70 text-foreground hover:bg-background/90"
+                  >
+                    <Satellite className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => mapRef.current?.toggleMeasurement()}
+                    title="Manual ruler"
+                    className="bg-background/70 text-foreground hover:bg-background/90"
+                  >
+                    <Ruler className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => mapRef.current?.togglePhotoMeasurement()}
+                    title="Photo distance"
+                    className="bg-background/70 text-foreground hover:bg-background/90"
+                  >
+                    <MousePointer2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => mapRef.current?.clearMeasurements()}
+                    title="Clear measurements"
+                    className="bg-background/70 text-foreground hover:bg-background/90"
+                  >
+                    Clear
+                  </Button>
+                </>
+              )}
+            </div>
+
             {/* Map */}
             {state.mapVisible && (
               <DamageMap
+                ref={mapRef}
                 photoSet={currentSet}
                 visible={state.mapVisible}
                 onPhotoSelect={handlePhotoSelect}
