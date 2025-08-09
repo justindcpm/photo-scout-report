@@ -18,10 +18,10 @@
     --popover: 0 0% 100%;
     --popover-foreground: 210 15% 15%;
 
-    /* Primary: Professional blue for damage assessment tools */
-    --primary: 210 85% 45%;
+    /* Brand: DCPM orange for primary UI elements */
+    --primary: 24 95% 55%;
     --primary-foreground: 0 0% 98%;
-    --primary-hover: 210 85% 40%;
+    --primary-hover: 24 95% 50%;
 
     /* Secondary: Clean gray for secondary actions */
     --secondary: 210 15% 92%;
@@ -30,15 +30,15 @@
     --muted: 210 15% 95%;
     --muted-foreground: 210 15% 50%;
 
-    --accent: 207 95% 88%;
-    --accent-foreground: 210 85% 25%;
+    --accent: 24 95% 88%;
+    --accent-foreground: 24 85% 25%;
 
     --destructive: 0 85% 55%;
     --destructive-foreground: 0 0% 98%;
 
     --border: 210 20% 88%;
     --input: 210 20% 96%;
-    --ring: 210 85% 45%;
+    --ring: var(--primary);
 
     /* Assessment-specific colors */
     --precondition: 120 60% 45%;
@@ -49,7 +49,7 @@
     --completion-foreground: 210 15% 15%;
 
     /* Professional gradients */
-    --gradient-header: linear-gradient(135deg, hsl(210 85% 45%), hsl(210 85% 40%));
+    --gradient-header: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-hover)));
     --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 15% 98%));
     --gradient-gallery: linear-gradient(180deg, hsl(210 15% 97%), hsl(210 15% 95%));
 
@@ -91,9 +91,9 @@
     --popover: 210 15% 10%;
     --popover-foreground: 210 15% 92%;
 
-    --primary: 210 85% 55%;
+    --primary: 24 95% 60%;
     --primary-foreground: 210 15% 8%;
-    --primary-hover: 210 85% 50%;
+    --primary-hover: 24 95% 55%;
 
     --secondary: 210 15% 18%;
     --secondary-foreground: 210 15% 85%;
@@ -101,21 +101,21 @@
     --muted: 210 15% 15%;
     --muted-foreground: 210 15% 65%;
 
-    --accent: 207 95% 25%;
-    --accent-foreground: 210 85% 85%;
+    --accent: 24 95% 30%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 85% 60%;
     --destructive-foreground: 210 15% 8%;
 
     --border: 210 15% 20%;
     --input: 210 15% 18%;
-    --ring: 210 85% 55%;
+    --ring: var(--primary);
 
     --precondition: 120 60% 50%;
     --damage: 15 85% 60%;
     --completion: 45 95% 55%;
 
-    --gradient-header: linear-gradient(135deg, hsl(210 85% 55%), hsl(210 85% 50%));
+    --gradient-header: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-hover)));
     --gradient-card: linear-gradient(180deg, hsl(210 15% 10%), hsl(210 15% 8%));
     --gradient-gallery: linear-gradient(180deg, hsl(210 15% 12%), hsl(210 15% 10%));
 

@@ -443,6 +443,13 @@ const [isProcessing, setIsProcessing] = useState(false);
           </>
         )}
       </div>
+      {/* Brand logo badge - non-interactive */}
+      <img
+        src="/lovable-uploads/d90971a8-7c57-4983-af58-e580d20396fe.png"
+        alt="DCPM Damage Control Project Management logo"
+        className="fixed bottom-3 right-3 h-10 opacity-90 pointer-events-none select-none drop-shadow-md"
+        loading="lazy"
+      />
     </div>
   );
 };
