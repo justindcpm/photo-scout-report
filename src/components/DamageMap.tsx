@@ -16,6 +16,7 @@ interface DamageMapProps {
   photoSet?: PhotoSet;
   visible: boolean;
   onPhotoSelect?: (type: 'damage' | 'precondition' | 'completion', photo: PhotoMetadata) => void;
+  onDistanceChange?: (distanceMeters: number, source: 'auto' | 'manual' | 'photo') => void;
 }
 
 export type DamageMapHandle = {
@@ -27,7 +28,7 @@ export type DamageMapHandle = {
   getState: () => { satelliteView: boolean; measuring: boolean; photoMeasuring: boolean; editorMode: boolean };
 };
 
-export const DamageMap = forwardRef<DamageMapHandle, DamageMapProps>(({ photoSet, visible, onPhotoSelect }, ref) => {
+export const DamageMap = forwardRef<DamageMapHandle, DamageMapProps>(({ photoSet, visible, onPhotoSelect, onDistanceChange }, ref) => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [satelliteView, setSatelliteView] = useState(false);
@@ -236,8 +237,7 @@ export const DamageMap = forwardRef<DamageMapHandle, DamageMapProps>(({ photoSet
             lastPhoto.location.longitude
           );
           setAutoDistance(distance);
-          
-          // Draw line between first and last point
+          onDistanceChange?.(distance, 'auto');
           const polyline = L.polyline([
             [firstPhoto.location.latitude, firstPhoto.location.longitude],
             [lastPhoto.location.latitude, lastPhoto.location.longitude]
@@ -336,6 +336,7 @@ export const DamageMap = forwardRef<DamageMapHandle, DamageMapProps>(({ photoSet
             iconAnchor: [60, 10]
           })
         }).addTo(measureLayerRef.current!);
+        onDistanceChange?.(distance, 'photo');
       }
       
       // Reset selection
@@ -455,6 +456,7 @@ export const DamageMap = forwardRef<DamageMapHandle, DamageMapProps>(({ photoSet
           }).addTo(measureLayerRef.current!);
           (distanceMarker as any)._measureMarker = true;
           (distanceMarker as any)._measureDistance = true;
+          onDistanceChange?.(distance, 'manual');
           
           // Reset for next measurement
           firstPoint = null;

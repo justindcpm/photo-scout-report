@@ -13,6 +13,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Ruler, Satellite, MousePointer2 } from 'lucide-react';
 
+interface ReportMetrics {
+  distanceMeters?: number;
+  costAUD?: number;
+}
+
 export const DamageReportViewer = () => {
   const [state, setState] = useState<DamageReportState>({
     photoSets: [],
@@ -31,6 +36,8 @@ const [isProcessing, setIsProcessing] = useState(false);
   const [showReportGenerator, setShowReportGenerator] = useState(false);
   const mapRef = useRef<DamageMapHandle | null>(null);
   const [editorMode, setEditorMode] = useState(false);
+  const [metricsById, setMetricsById] = useState<Record<string, ReportMetrics>>({});
+  const [lastMeasuredDistance, setLastMeasuredDistance] = useState<number | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('dm_editor_mode');
@@ -268,6 +275,13 @@ const [isProcessing, setIsProcessing] = useState(false);
     }, 100);
   }, []);
 
+  const handleMetricsChange = useCallback((damageId: string, metrics: ReportMetrics) => {
+    setMetricsById(prev => ({ ...prev, [damageId]: metrics }));
+    try { localStorage.setItem(`dm_metrics_${damageId}`, JSON.stringify(metrics)); } catch {}
+  }, []);
+
+  const handleDistanceChange = useCallback((distance: number) => { setLastMeasuredDistance(distance); }, []);
+
   const currentSet = state.photoSets[state.currentSetIndex];
   const galleryVisibility = {
     precondition: state.galleries.precondition.visible,
@@ -314,6 +328,9 @@ const [isProcessing, setIsProcessing] = useState(false);
                 damageId={currentSet.damageId}
                 approval={state.approvals[currentSet.damageId]}
                 onApprovalChange={handleApprovalChange}
+                metrics={metricsById[currentSet.damageId]}
+                onMetricsChange={handleMetricsChange}
+                lastMeasuredDistance={lastMeasuredDistance}
               />
             )}
 
@@ -387,7 +404,6 @@ const [isProcessing, setIsProcessing] = useState(false);
                 onPhotoSelect={handlePhotoSelect}
               />
             )}
-
 
             {/* Photo Galleries */}
             <div className={`grid gap-4 h-[700px] ${
