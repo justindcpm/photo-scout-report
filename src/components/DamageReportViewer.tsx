@@ -283,6 +283,17 @@ const [isProcessing, setIsProcessing] = useState(false);
   const handleDistanceChange = useCallback((distance: number) => { setLastMeasuredDistance(distance); }, []);
 
   const currentSet = state.photoSets[state.currentSetIndex];
+
+  useEffect(() => {
+    if (!currentSet) return;
+    try {
+      const raw = localStorage.getItem(`dm_metrics_${currentSet.damageId}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setMetricsById(prev => ({ ...prev, [currentSet.damageId]: parsed }));
+      }
+    } catch {}
+  }, [currentSet?.damageId]);
   const galleryVisibility = {
     precondition: state.galleries.precondition.visible,
     damage: state.galleries.damage.visible,
@@ -402,6 +413,18 @@ const [isProcessing, setIsProcessing] = useState(false);
                 photoSet={currentSet}
                 visible={state.mapVisible}
                 onPhotoSelect={handlePhotoSelect}
+                onDistanceChange={(d) => {
+                  setLastMeasuredDistance(d);
+                  if (currentSet) {
+                    const id = currentSet.damageId;
+                    const existing = metricsById[id] || {};
+                    if (existing.distanceMeters == null) {
+                      const updated = { ...existing, distanceMeters: d };
+                      setMetricsById(prev => ({ ...prev, [id]: updated }));
+                      try { localStorage.setItem(`dm_metrics_${id}`, JSON.stringify(updated)); } catch {}
+                    }
+                  }
+                }}
               />
             )}
 
