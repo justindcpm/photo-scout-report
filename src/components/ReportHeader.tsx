@@ -1,4 +1,4 @@
-import { Search, ChevronLeft, ChevronRight, Map, Eye, EyeOff, ArrowLeft, FileSpreadsheet } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, MapPin, Eye, EyeOff, ArrowLeft, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -14,7 +14,7 @@ interface ReportHeaderProps {
   onNextReport: () => void;
   onToggleGallery: (gallery: GalleryType, visible: boolean) => void;
   galleryVisibility: Record<GalleryType, boolean>;
-  onToggleMap: () => void;
+  onOpenMapWindow: () => void;
   mapVisible: boolean;
   onReset: () => void;
   onToggleReportGenerator: () => void;
@@ -30,7 +30,7 @@ export const ReportHeader = ({
   onNextReport,
   onToggleGallery,
   galleryVisibility,
-  onToggleMap,
+  onOpenMapWindow,
   mapVisible,
   onReset,
   onToggleReportGenerator,
@@ -64,13 +64,13 @@ export const ReportHeader = ({
           
           <div className="flex gap-2">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={onToggleMap}
-              className="text-primary-foreground hover:bg-primary-foreground/20"
+              onClick={onOpenMapWindow}
+              className="shrink-0"
             >
-              <Map className="w-4 h-4 mr-2" />
-              {mapVisible ? 'Hide Map' : 'Show Map'}
+              <MapPin className="w-4 h-4 mr-2" />
+              Open Map
             </Button>
             
             <Button

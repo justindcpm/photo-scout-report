@@ -88,49 +88,49 @@ export const PhotoGallery = ({
   if (!visible) return null;
 
   return (
-    <Card className="flex-1 bg-gradient-gallery shadow-gallery overflow-hidden">
-      {/* Compact Header */}
-      <div className={`p-2 border-b bg-${getTypeColor(type)} text-${getTypeColor(type)}-foreground`}>
+    <Card className="flex-1 bg-gradient-gallery shadow-gallery overflow-hidden border-0 rounded-lg">
+      {/* Ultra Compact Header */}
+      <div className={`p-1 border-b bg-${getTypeColor(type)} text-${getTypeColor(type)}-foreground`}>
         <div className="flex items-center justify-between">
-          <h3 className="font-medium text-sm capitalize">{type}</h3>
-          <div className="flex gap-1">
+          <h3 className="font-semibold text-xs uppercase tracking-wide">{type}</h3>
+          <div className="flex gap-0.5">
             <Button
               variant="ghost"
               size="tool"
               onClick={handlePreviousPhoto}
               disabled={getCurrentPhotoIndex() <= 0}
-              className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20 h-6 w-6 p-1 disabled:opacity-50`}
+              className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20 h-5 w-5 p-0.5 disabled:opacity-50`}
               title="Previous Photo"
             >
-              <ChevronLeft className="w-3 h-3" />
+              <ChevronLeft className="w-2.5 h-2.5" />
             </Button>
             <Button
               variant="ghost"
               size="tool"
               onClick={handleNextPhoto}
               disabled={getCurrentPhotoIndex() >= photos.length - 1}
-              className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20 h-6 w-6 p-1 disabled:opacity-50`}
+              className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20 h-5 w-5 p-0.5 disabled:opacity-50`}
               title="Next Photo"
             >
-              <ChevronRight className="w-3 h-3" />
+              <ChevronRight className="w-2.5 h-2.5" />
             </Button>
             <Button
               variant="ghost"
               size="tool"
               onClick={onRotate}
-              className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20 h-6 w-6 p-1`}
+              className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20 h-5 w-5 p-0.5`}
               title="Rotate 90°"
             >
-              <RotateCw className="w-3 h-3" />
+              <RotateCw className="w-2.5 h-2.5" />
             </Button>
             <Button
               variant="ghost"
               size="tool"
               onClick={onZoomToggle}
-              className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20 h-6 w-6 p-1`}
+              className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20 h-5 w-5 p-0.5`}
               title={zoom > 1 ? "Zoom Out" : "Zoom In"}
             >
-              {zoom > 1 ? <ZoomOut className="w-3 h-3" /> : <ZoomIn className="w-3 h-3" />}
+              {zoom > 1 ? <ZoomOut className="w-2.5 h-2.5" /> : <ZoomIn className="w-2.5 h-2.5" />}
             </Button>
           </div>
         </div>
@@ -172,29 +172,20 @@ export const PhotoGallery = ({
           )}
         </div>
 
-        {/* Compact Photo Info */}
-        {selectedPhoto && (
-          <div className="p-1 bg-background/50 backdrop-blur-sm border-t">
-            <p className="text-xs text-muted-foreground truncate" title={selectedPhoto.name}>
-              {selectedPhoto.name}
-            </p>
-          </div>
-        )}
-
-        {/* Compact Thumbnail Strip */}
-        <div className="p-2 border-t bg-background/30">
+        {/* Minimal Thumbnail Strip - Bottom Only */}
+        <div className="p-1 border-t bg-background/20 backdrop-blur-sm">
           <div className="flex gap-1 overflow-x-auto gallery-scroll" style={{ scrollbarWidth: 'thin' }}>
             {photos.length > 0 ? (
               photos.map((photo, index) => (
                 <button
                   key={photo.name}
                   onClick={() => onPhotoSelect(photo)}
-                  className={`flex-shrink-0 w-12 h-12 min-w-[48px] min-h-[48px] rounded-md overflow-hidden border-2 transition-smooth ${
+                  className={`flex-shrink-0 w-10 h-10 min-w-[40px] min-h-[40px] rounded overflow-hidden border transition-smooth ${
                     selectedPhoto?.name === photo.name 
-                      ? `border-${getTypeColor(type)} shadow-md` 
-                      : 'border-border hover:border-muted-foreground'
+                      ? `border-2 border-${getTypeColor(type)} shadow-lg ring-1 ring-${getTypeColor(type)}/50` 
+                      : 'border border-border/50 hover:border-muted-foreground hover:shadow-md'
                   }`}
-                  title={photo.name}
+                  title={`${photo.name} (${index + 1}/${photos.length})`}
                 >
                   <img
                     src={photo.url}
@@ -205,22 +196,22 @@ export const PhotoGallery = ({
                 </button>
               ))
             ) : (
-              <div className="flex-1 text-center py-2">
-                <p className="text-xs text-muted-foreground">No {type} photos</p>
+              <div className="flex-1 text-center py-1">
+                <p className="text-xs text-muted-foreground/70">No {type} photos</p>
               </div>
             )}
           </div>
           
-          {photos.length > 0 && (
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-muted-foreground">
-                {photos.length} photo{photos.length !== 1 ? 's' : ''}
+          {photos.length > 0 && selectedPhoto && (
+            <div className="flex items-center justify-center mt-1">
+              <p className="text-xs text-muted-foreground/80 font-medium">
+                {getCurrentPhotoIndex() + 1} / {photos.length}
+                {selectedPhoto && (
+                  <span className="ml-2 text-muted-foreground/60 font-normal truncate max-w-[120px] inline-block">
+                    {selectedPhoto.name.split('.')[0]}
+                  </span>
+                )}
               </p>
-              {selectedPhoto && (
-                <p className="text-xs text-muted-foreground">
-                  {getCurrentPhotoIndex() + 1} of {photos.length}
-                </p>
-              )}
             </div>
           )}
         </div>

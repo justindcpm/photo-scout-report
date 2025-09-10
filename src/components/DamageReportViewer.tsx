@@ -179,9 +179,124 @@ const [isProcessing, setIsProcessing] = useState(false);
     }));
   }, []);
 
-  const handleToggleMap = useCallback(() => {
-    setState(prev => ({ ...prev, mapVisible: !prev.mapVisible }));
-  }, []);
+  const currentSet = state.photoSets[state.currentSetIndex];
+
+  const handleOpenMapWindow = useCallback(() => {
+    if (!currentSet) return;
+    
+    const mapWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+    if (!mapWindow) {
+      toast.error('Failed to open map window. Please allow popups.');
+      return;
+    }
+
+    mapWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Damage Assessment Map - ${currentSet.damageId}</title>
+          <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+          <style>
+            body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+            #map { height: 100vh; width: 100vw; }
+            .leaflet-container { background: #f8f9fa; }
+          </style>
+        </head>
+        <body>
+          <div id="map"></div>
+          <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+          <script>
+            const photoData = ${JSON.stringify({
+              damagePhotos: currentSet.damagePhotos,
+              preconditionPhotos: currentSet.preconditionPhotos,
+              completionPhotos: currentSet.completionPhotos,
+              damageId: currentSet.damageId
+            })};
+            
+            // Initialize map
+            const map = L.map('map').setView([${currentSet.damagePhotos[0]?.location?.latitude || -37.8136}, ${currentSet.damagePhotos[0]?.location?.longitude || 144.9631}], 15);
+            
+            // Add tile layers
+            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+              attribution: '© Esri, Maxar, Earthstar Geographics'
+            });
+            
+            // Create custom icons
+            const createIcon = (color, type) => L.divIcon({
+              html: \`<div style="background: \${color}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">\${type}</div>\`,
+              className: 'custom-marker',
+              iconSize: [24, 24],
+              iconAnchor: [12, 12]
+            });
+            
+            // Add markers
+            let markerIndex = 1;
+            [...photoData.damagePhotos, ...photoData.preconditionPhotos, ...photoData.completionPhotos].forEach((photo, index) => {
+              if (photo.location?.latitude && photo.location?.longitude) {
+                const isDamage = photoData.damagePhotos.includes(photo);
+                const isPrecondition = photoData.preconditionPhotos.includes(photo);
+                const color = isDamage ? '#ef4444' : isPrecondition ? '#f59e0b' : '#22c55e';
+                const type = isDamage ? 'D' : isPrecondition ? 'P' : 'C';
+                const label = isDamage ? \`D\${markerIndex++}\` : (isPrecondition ? 'PRE' : 'COM');
+                
+                L.marker([photo.location.latitude, photo.location.longitude], {
+                  icon: createIcon(color, type)
+                }).addTo(map).bindPopup(\`
+                  <div style="min-width: 200px;">
+                    <img src="\${photo.url}" style="width: 100%; height: 120px; object-fit: cover; margin-bottom: 8px; border-radius: 4px;" />
+                    <p style="margin: 0; font-weight: bold;">\${label}</p>
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">\${photo.name}</p>
+                  </div>
+                \`);
+              }
+            });
+            
+            // Add controls
+            const controlsDiv = L.control({position: 'topright'});
+            controlsDiv.onAdd = function() {
+              const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+              div.innerHTML = \`
+                <a href="#" onclick="toggleSatellite()" title="Toggle Satellite">🛰️</a>
+                <a href="#" onclick="fitBounds()" title="Fit All Markers">📍</a>
+              \`;
+              return div;
+            };
+            controlsDiv.addTo(map);
+            
+            let usingSatellite = false;
+            window.toggleSatellite = () => {
+              if (usingSatellite) {
+                map.removeLayer(satelliteLayer);
+                map.addLayer(osmLayer);
+              } else {
+                map.removeLayer(osmLayer);
+                map.addLayer(satelliteLayer);
+              }
+              usingSatellite = !usingSatellite;
+            };
+            
+            window.fitBounds = () => {
+              const allCoords = [...photoData.damagePhotos, ...photoData.preconditionPhotos, ...photoData.completionPhotos]
+                .filter(p => p.location?.latitude && p.location?.longitude)
+                .map(p => [p.location.latitude, p.location.longitude]);
+              if (allCoords.length > 0) {
+                map.fitBounds(allCoords, {padding: [20, 20]});
+              }
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    mapWindow.document.close();
+    
+    toast.success(`Map opened for ${currentSet.damageId}`);
+  }, [currentSet]);
 
   const handlePhotoSelect = useCallback((gallery: GalleryType, photo: PhotoMetadata) => {
     setState(prev => ({
@@ -283,8 +398,6 @@ const [isProcessing, setIsProcessing] = useState(false);
 
   const handleDistanceChange = useCallback((distance: number) => { setLastMeasuredDistance(distance); }, []);
 
-  const currentSet = state.photoSets[state.currentSetIndex];
-
   useEffect(() => {
     if (!currentSet) return;
     try {
@@ -327,8 +440,8 @@ const [isProcessing, setIsProcessing] = useState(false);
               onNextReport={handleNextReport}
               onToggleGallery={handleToggleGallery}
               galleryVisibility={galleryVisibility}
-              onToggleMap={handleToggleMap}
-              mapVisible={state.mapVisible}
+              onOpenMapWindow={handleOpenMapWindow}
+              mapVisible={false}
               onReset={handleReset}
               onToggleReportGenerator={() => setShowReportGenerator(!showReportGenerator)}
               showReportGenerator={showReportGenerator}
@@ -360,84 +473,12 @@ const [isProcessing, setIsProcessing] = useState(false);
               </DialogContent>
             </Dialog>
 
-            {/* Map Tools (outside the map) */}
-            <div className="flex justify-end gap-2 mb-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setEditorMode(!editorMode)}
-              >
-                {editorMode ? 'Hide Tools' : 'Editor Mode'}
-              </Button>
-              {editorMode && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => mapRef.current?.toggleSatelliteView()}
-                    title="Toggle base map"
-                    className="bg-background/70 text-foreground hover:bg-background/90"
-                  >
-                    <Satellite className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => mapRef.current?.toggleMeasurement()}
-                    title="Manual ruler"
-                    className="bg-background/70 text-foreground hover:bg-background/90"
-                  >
-                    <Ruler className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => mapRef.current?.togglePhotoMeasurement()}
-                    title="Photo distance"
-                    className="bg-background/70 text-foreground hover:bg-background/90"
-                  >
-                    <MousePointer2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => mapRef.current?.clearMeasurements()}
-                    title="Clear measurements"
-                    className="bg-background/70 text-foreground hover:bg-background/90"
-                  >
-                    Clear
-                  </Button>
-                </>
-              )}
-            </div>
 
-            {/* Map */}
-            {state.mapVisible && (
-              <DamageMap
-                ref={mapRef}
-                photoSet={currentSet}
-                visible={state.mapVisible}
-                onPhotoSelect={handlePhotoSelect}
-                onDistanceChange={(d) => {
-                  setLastMeasuredDistance(d);
-                  if (currentSet) {
-                    const id = currentSet.damageId;
-                    const existing = metricsById[id] || {};
-                    if (existing.distanceMeters == null) {
-                      const updated = { ...existing, distanceMeters: d };
-                      setMetricsById(prev => ({ ...prev, [id]: updated }));
-                      try { localStorage.setItem(`dm_metrics_${id}`, JSON.stringify(updated)); } catch {}
-                    }
-                  }
-                }}
-              />
-            )}
-
-            {/* Photo Galleries */}
-            <div className={`grid gap-4 h-[700px] ${
-              visibleGalleries === 1 ? 'grid-cols-1' :
-              visibleGalleries === 2 ? 'grid-cols-2' : 
-              'grid-cols-3'
+            {/* Photo Galleries - Maximized for Assessment */}
+            <div className={`grid gap-1 ${
+              visibleGalleries === 1 ? 'grid-cols-1 h-[80vh]' :
+              visibleGalleries === 2 ? 'grid-cols-2 h-[80vh]' : 
+              'grid-cols-3 h-[75vh]'
             }`}>
               <PhotoGallery
                 type="precondition"
