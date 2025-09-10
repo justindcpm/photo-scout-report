@@ -45,6 +45,8 @@ export const DamageReportViewer = () => {
 
   const [mapWindow, setMapWindow] = useState<Window | null>(null);
 
+  const currentSet = state.photoSets[state.currentSetIndex];
+
   // Enhanced map window with real-time highlighting
   // Update map window when selected photo changes
   useEffect(() => {
@@ -72,14 +74,33 @@ export const DamageReportViewer = () => {
     mapWindow
   ]);
 
+  // Update map window when currentSet changes (switching between folders)
+  useEffect(() => {
+    if (!mapWindow || mapWindow.closed || !currentSet) return;
+    
+    try {
+      mapWindow.postMessage({
+        type: 'UPDATE_SET_DATA',
+        photoData: {
+          damagePhotos: currentSet.damagePhotos,
+          preconditionPhotos: currentSet.preconditionPhotos,
+          completionPhotos: currentSet.completionPhotos,
+          damageId: currentSet.damageId
+        }
+      }, '*');
+      
+      console.log('Sent map update for:', currentSet.damageId);
+    } catch (error) {
+      console.log('Map window communication error:', error);
+    }
+  }, [currentSet, mapWindow]);
+
   // Get currently highlighted photo for map synchronization
   const getHighlightedPhoto = () => {
     return state.galleries.damage.selectedPhoto || 
            state.galleries.precondition.selectedPhoto || 
            state.galleries.completion.selectedPhoto;
   };
-
-  const currentSet = state.photoSets[state.currentSetIndex];
 
   useEffect(() => {
     const saved = localStorage.getItem('dm_editor_mode');
@@ -158,6 +179,8 @@ export const DamageReportViewer = () => {
     if (setIndex < 0 || setIndex >= state.photoSets.length) return;
 
     const currentSet = state.photoSets[setIndex];
+    console.log('Switching to damage report set:', currentSet.damageId);
+    
     setState(prev => ({
       ...prev,
       currentSetIndex: setIndex,
@@ -402,8 +425,92 @@ export const DamageReportViewer = () => {
             window.addEventListener('message', (event) => {
               if (event.data.type === 'HIGHLIGHT_PHOTO' && event.data.photoName) {
                 highlightPhotoMarker(event.data.photoName);
+              } else if (event.data.type === 'UPDATE_SET_DATA' && event.data.photoData) {
+                // Clear existing markers and update with new set data
+                updateMapWithNewSet(event.data.photoData);
               }
             });
+
+            // Function to update map with new damage report set
+            function updateMapWithNewSet(newPhotoData) {
+              // Clear existing markers
+              allMarkers.forEach(marker => {
+                map.removeLayer(marker);
+              });
+              allMarkers = [];
+              highlightedMarker = null;
+
+              // Update window title
+              document.title = \`Damage Assessment Map - \${newPhotoData.damageId}\`;
+              document.querySelector('.map-title').textContent = \`📍 \${newPhotoData.damageId} - Interactive Assessment Map\`;
+
+              // Add new markers with updated data
+              let damageIndex = 1;
+              newPhotoData.damagePhotos.forEach((photo, index) => {
+                if (photo.location?.latitude && photo.location?.longitude) {
+                  const marker = L.marker([photo.location.latitude, photo.location.longitude], {
+                    icon: createDamageIcon(damageIndex)
+                  }).addTo(map).bindPopup(\`
+                    <div style="min-width: 250px;">
+                      <img src="\${photo.url}" style="width: 100%; height: 150px; object-fit: cover; margin-bottom: 10px; border-radius: 6px;" />
+                      <h3 style="margin: 0; color: #ef4444; font-size: 16px;">🔴 Damage \${damageIndex}</h3>
+                      <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">\${photo.name}</p>
+                      <div style="margin-top: 10px; padding: 8px; background: #fee2e2; border-radius: 4px; font-size: 12px;">
+                        <strong>Assessment Point \${damageIndex}</strong><br>
+                        Click to view in gallery
+                      </div>
+                    </div>
+                  \`);
+                  marker._photoName = photo.name;
+                  marker._photoType = 'damage';
+                  marker._damageNumber = damageIndex;
+                  allMarkers.push(marker);
+                  damageIndex++;
+                }
+              });
+              
+              newPhotoData.preconditionPhotos.forEach(photo => {
+                if (photo.location?.latitude && photo.location?.longitude) {
+                  const marker = L.marker([photo.location.latitude, photo.location.longitude], {
+                    icon: createTypeIcon('PRE', '#22c55e')
+                  }).addTo(map).bindPopup(\`
+                    <div style="min-width: 250px;">
+                      <img src="\${photo.url}" style="width: 100%; height: 150px; object-fit: cover; margin-bottom: 10px; border-radius: 6px;" />
+                      <h3 style="margin: 0; color: #22c55e; font-size: 16px;">🟢 Precondition</h3>
+                      <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">\${photo.name}</p>
+                    </div>
+                  \`);
+                  marker._photoName = photo.name;
+                  marker._photoType = 'precondition';
+                  allMarkers.push(marker);
+                }
+              });
+              
+              newPhotoData.completionPhotos.forEach(photo => {
+                if (photo.location?.latitude && photo.location?.longitude) {
+                  const marker = L.marker([photo.location.latitude, photo.location.longitude], {
+                    icon: createTypeIcon('COM', '#eab308')
+                  }).addTo(map).bindPopup(\`
+                    <div style="min-width: 250px;">
+                      <img src="\${photo.url}" style="width: 100%; height: 150px; object-fit: cover; margin-bottom: 10px; border-radius: 6px;" />
+                      <h3 style="margin: 0; color: #eab308; font-size: 16px;">🟡 Completion</h3>
+                      <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">\${photo.name}</p>
+                    </div>
+                  \`);
+                  marker._photoName = photo.name;
+                  marker._photoType = 'completion';
+                  allMarkers.push(marker);
+                }
+              });
+
+              // Fit map to show all new markers
+              if (allMarkers.length > 0) {
+                const group = new L.featureGroup(allMarkers);
+                map.fitBounds(group.getBounds().pad(0.1));
+              }
+
+              console.log('Updated map with new set:', newPhotoData.damageId, 'Total markers:', allMarkers.length);
+            }
             
             // Create enhanced icons
             const createDamageIcon = (damageNumber, isHighlighted = false) => L.divIcon({
