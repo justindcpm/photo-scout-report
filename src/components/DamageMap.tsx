@@ -17,6 +17,7 @@ interface DamageMapProps {
   visible: boolean;
   onPhotoSelect?: (type: 'damage' | 'precondition' | 'completion', photo: PhotoMetadata) => void;
   onDistanceChange?: (distanceMeters: number, source: 'auto' | 'manual' | 'photo') => void;
+  highlightedPhoto?: PhotoMetadata; // New prop for gallery-to-map highlighting
 }
 
 export type DamageMapHandle = {
@@ -28,7 +29,7 @@ export type DamageMapHandle = {
   getState: () => { satelliteView: boolean; measuring: boolean; photoMeasuring: boolean; editorMode: boolean };
 };
 
-export const DamageMap = forwardRef<DamageMapHandle, DamageMapProps>(({ photoSet, visible, onPhotoSelect, onDistanceChange }, ref) => {
+export const DamageMap = forwardRef<DamageMapHandle, DamageMapProps>(({ photoSet, visible, onPhotoSelect, onDistanceChange, highlightedPhoto }, ref) => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [satelliteView, setSatelliteView] = useState(false);
@@ -129,30 +130,70 @@ export const DamageMap = forwardRef<DamageMapHandle, DamageMapProps>(({ photoSet
       return;
     }
 
-    // Create marker icons for different photo types
-    const createIcon = (color: string) => L.divIcon({
-      className: 'custom-marker',
+    // Create enhanced marker icons with damage numbering
+    const createDamageIcon = (damageNumber: number, isHighlighted = false) => L.divIcon({
+      className: 'custom-damage-marker',
       html: `<div style="
-        width: 20px; 
-        height: 20px; 
+        width: 28px; 
+        height: 28px; 
         border-radius: 50%; 
-        background-color: ${color}; 
-        border: 2px solid white; 
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      "></div>`,
-      iconSize: [20, 20],
-      iconAnchor: [10, 10]
+        background-color: ${isHighlighted ? '#dc2626' : '#ef4444'}; 
+        border: 3px solid white; 
+        box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: white;
+        font-size: 11px;
+        ${isHighlighted ? 'animation: pulse 2s infinite;' : ''}
+      ">${damageNumber}</div>
+      <style>
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.2); }
+        }
+      </style>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
     });
 
-    const damageIcon = createIcon('#ef4444');
-    const preconditionIcon = createIcon('#22c55e');
-    const completionIcon = createIcon('#eab308');
+    const createTypeIcon = (type: 'PRE' | 'COM', color: string, isHighlighted = false) => L.divIcon({
+      className: 'custom-type-marker',
+      html: `<div style="
+        min-width: 32px; 
+        height: 24px; 
+        border-radius: 12px; 
+        background-color: ${isHighlighted ? (type === 'PRE' ? '#dc2626' : '#059669') : color}; 
+        border: 2px solid white; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: white;
+        font-size: 9px;
+        padding: 0 4px;
+        ${isHighlighted ? 'animation: pulse 2s infinite;' : ''}
+      ">${type}</div>`,
+      iconSize: [32, 24],
+      iconAnchor: [16, 12]
+    });
 
-    // Add markers for each photo type
-    photoSet.damagePhotos.forEach(photo => {
+    // Add enhanced markers for each photo type with proper numbering and highlighting
+    photoSet.damagePhotos.forEach((photo, index) => {
       if (photo.location) {
-        const marker = L.marker([photo.location.latitude, photo.location.longitude], { icon: damageIcon })
-          .bindPopup(`<strong>Damage Photo</strong><br/>${photo.name}`)
+        const isHighlighted = highlightedPhoto && highlightedPhoto.name === photo.name;
+        const damageNumber = index + 1;
+        const marker = L.marker(
+          [photo.location.latitude, photo.location.longitude], 
+          { icon: createDamageIcon(damageNumber, isHighlighted) }
+        )
+          .bindPopup(`<div style="min-width: 200px;">
+            <img src="${photo.url}" style="width: 100%; height: 120px; object-fit: cover; margin-bottom: 8px; border-radius: 4px;" />
+            <p style="margin: 0; font-weight: bold; color: #ef4444;">Damage ${damageNumber}</p>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">${photo.name}</p>
+          </div>`)
           .on('click', (e) => {
             // Prevent map click event when clicking on markers during measurement
             if (measuring || photoMeasuring) {
@@ -172,8 +213,16 @@ export const DamageMap = forwardRef<DamageMapHandle, DamageMapProps>(({ photoSet
 
     photoSet.preconditionPhotos.forEach(photo => {
       if (photo.location) {
-        const marker = L.marker([photo.location.latitude, photo.location.longitude], { icon: preconditionIcon })
-          .bindPopup(`<strong>Precondition Photo</strong><br/>${photo.name}`)
+        const isHighlighted = highlightedPhoto && highlightedPhoto.name === photo.name;
+        const marker = L.marker(
+          [photo.location.latitude, photo.location.longitude], 
+          { icon: createTypeIcon('PRE', '#22c55e', isHighlighted) }
+        )
+          .bindPopup(`<div style="min-width: 200px;">
+            <img src="${photo.url}" style="width: 100%; height: 120px; object-fit: cover; margin-bottom: 8px; border-radius: 4px;" />
+            <p style="margin: 0; font-weight: bold; color: #22c55e;">Precondition</p>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">${photo.name}</p>
+          </div>`)
           .on('click', (e) => {
             // Prevent map click event when clicking on markers during measurement
             if (measuring || photoMeasuring) {
@@ -193,8 +242,16 @@ export const DamageMap = forwardRef<DamageMapHandle, DamageMapProps>(({ photoSet
 
     photoSet.completionPhotos.forEach(photo => {
       if (photo.location) {
-        const marker = L.marker([photo.location.latitude, photo.location.longitude], { icon: completionIcon })
-          .bindPopup(`<strong>Completion Photo</strong><br/>${photo.name}`)
+        const isHighlighted = highlightedPhoto && highlightedPhoto.name === photo.name;
+        const marker = L.marker(
+          [photo.location.latitude, photo.location.longitude], 
+          { icon: createTypeIcon('COM', '#eab308', isHighlighted) }
+        )
+          .bindPopup(`<div style="min-width: 200px;">
+            <img src="${photo.url}" style="width: 100%; height: 120px; object-fit: cover; margin-bottom: 8px; border-radius: 4px;" />
+            <p style="margin: 0; font-weight: bold; color: #eab308;">Completion</p>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">${photo.name}</p>
+          </div>`)
           .on('click', (e) => {
             // Prevent map click event when clicking on markers during measurement
             if (measuring || photoMeasuring) {

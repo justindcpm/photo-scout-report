@@ -6,7 +6,7 @@ import { DamageMap } from './DamageMap';
 import type { DamageMapHandle } from './DamageMap';
 import { ReportGenerator } from './ReportGenerator';
 import { ApprovalControls } from './ApprovalControls';
-import { MeasurementTools } from './MeasurementTools';
+import { FeatureRecommendations } from './FeatureRecommendations';
 import { PhotoSet, GalleryType, DamageReportState, PhotoMetadata, PhotoSetApproval } from '@/types/damage-report';
 import { processFolderStructure } from '@/utils/photo-processing';
 import { toast } from 'sonner';
@@ -35,12 +35,41 @@ export const DamageReportViewer = () => {
   });
 const [isProcessing, setIsProcessing] = useState(false);
   const [showReportGenerator, setShowReportGenerator] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
   const mapRef = useRef<DamageMapHandle | null>(null);
   const [editorMode, setEditorMode] = useState(false);
   const [metricsById, setMetricsById] = useState<Record<string, ReportMetrics>>({});
   const [lastMeasuredDistance, setLastMeasuredDistance] = useState<number | null>(null);
 
-  // Declare currentSet early to avoid temporal dead zone issues
+  const [mapWindow, setMapWindow] = useState<Window | null>(null);
+
+  // Enhanced map window with real-time highlighting
+  // Update map window when selected photo changes
+  useEffect(() => {
+    if (!mapWindow || mapWindow.closed) return;
+    
+    const currentSelectedPhoto = state.galleries.damage.selectedPhoto || 
+                                state.galleries.precondition.selectedPhoto || 
+                                state.galleries.completion.selectedPhoto;
+    
+    if (currentSelectedPhoto) {
+      try {
+        mapWindow.postMessage({
+          type: 'HIGHLIGHT_PHOTO',
+          photoName: currentSelectedPhoto.name,
+          photoUrl: currentSelectedPhoto.url
+        }, '*');
+      } catch (error) {
+        console.log('Map window communication error:', error);
+      }
+    }
+  }, [
+    state.galleries.damage.selectedPhoto,
+    state.galleries.precondition.selectedPhoto,
+    state.galleries.completion.selectedPhoto,
+    mapWindow
+  ]);
+
   const currentSet = state.photoSets[state.currentSetIndex];
 
   useEffect(() => {
@@ -185,13 +214,15 @@ const [isProcessing, setIsProcessing] = useState(false);
   const handleOpenMapWindow = useCallback(() => {
     if (!currentSet) return;
     
-    const mapWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-    if (!mapWindow) {
+    const newMapWindow = window.open('', '_blank', 'width=1400,height=900,scrollbars=yes,resizable=yes');
+    if (!newMapWindow) {
       toast.error('Failed to open map window. Please allow popups.');
       return;
     }
 
-    mapWindow.document.write(`
+    setMapWindow(newMapWindow);
+
+    newMapWindow.document.write(`
       <!DOCTYPE html>
       <html lang="en">
         <head>
@@ -200,13 +231,97 @@ const [isProcessing, setIsProcessing] = useState(false);
           <title>Damage Assessment Map - ${currentSet.damageId}</title>
           <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
           <style>
-            body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-            #map { height: 100vh; width: 100vw; }
-            .leaflet-container { background: #f8f9fa; }
+            body { margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; background: #f1f5f9; }
+            #map { height: calc(100vh - 60px); width: 100vw; }
+            .map-header { 
+              height: 60px; 
+              background: linear-gradient(135deg, #1e293b, #334155); 
+              color: white; 
+              display: flex; 
+              align-items: center; 
+              justify-content: space-between; 
+              padding: 0 20px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            .map-title { font-size: 18px; font-weight: bold; }
+            .map-tools { display: flex; gap: 10px; }
+            .tool-btn { 
+              background: rgba(255,255,255,0.2); 
+              border: 1px solid rgba(255,255,255,0.3); 
+              color: white; 
+              padding: 8px 16px; 
+              border-radius: 6px; 
+              cursor: pointer; 
+              font-size: 14px;
+              transition: all 0.3s ease;
+            }
+            .tool-btn:hover { background: rgba(255,255,255,0.3); transform: translateY(-1px); }
+            .tool-btn.active { background: rgba(59, 130, 246, 0.8); }
+            .leaflet-container { background: #f8fafc; }
+            .legend { 
+              position: absolute; 
+              bottom: 20px; 
+              left: 20px; 
+              background: white; 
+              padding: 15px; 
+              border-radius: 8px; 
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+              font-size: 12px;
+              z-index: 1000;
+            }
+            .legend-item { display: flex; align-items: center; margin-bottom: 8px; }
+            .legend-item:last-child { margin-bottom: 0; }
+            .legend-marker { width: 20px; height: 20px; margin-right: 10px; border-radius: 50%; }
+            .distance-display {
+              position: absolute;
+              top: 70px;
+              right: 20px;
+              background: white;
+              padding: 10px 15px;
+              border-radius: 6px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+              font-weight: bold;
+              z-index: 1000;
+            }
+            @keyframes pulse {
+              0%, 100% { transform: scale(1); opacity: 1; }
+              50% { transform: scale(1.15); opacity: 0.8; }
+            }
+            .highlighted-marker {
+              animation: pulse 2s infinite;
+            }
           </style>
         </head>
         <body>
+          <div class="map-header">
+            <div class="map-title">📍 ${currentSet.damageId} - Interactive Assessment Map</div>
+            <div class="map-tools">
+              <button class="tool-btn" onclick="toggleSatellite()" title="Toggle Satellite View">🛰️ Satellite</button>
+              <button class="tool-btn" onclick="startMeasurement()" title="Measure Distance" id="measureBtn">📏 Measure</button>
+              <button class="tool-btn" onclick="clearMeasurements()" title="Clear All Measurements">🗑️ Clear</button>
+              <button class="tool-btn" onclick="fitBounds()" title="Fit All Markers">🎯 Fit View</button>
+            </div>
+          </div>
           <div id="map"></div>
+          <div class="legend">
+            <h4 style="margin: 0 0 10px 0; font-size: 14px;">Map Legend</h4>
+            <div class="legend-item">
+              <div class="legend-marker" style="background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;">1</div>
+              Damage Points (numbered)
+            </div>
+            <div class="legend-item">
+              <div class="legend-marker" style="background: #22c55e; width: 30px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 8px; font-weight: bold;">PRE</div>
+              Precondition
+            </div>
+            <div class="legend-item">
+              <div class="legend-marker" style="background: #eab308; width: 30px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 8px; font-weight: bold;">COM</div>
+              Completion
+            </div>
+          </div>
+          <div class="distance-display" id="distanceDisplay" style="display: none;">
+            <div>Distance: <span id="distanceValue">0</span>m</div>
+          </div>
+          
           <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
           <script>
             const photoData = ${JSON.stringify({
@@ -217,7 +332,7 @@ const [isProcessing, setIsProcessing] = useState(false);
             })};
             
             // Initialize map
-            const map = L.map('map').setView([${currentSet.damagePhotos[0]?.location?.latitude || -37.8136}, ${currentSet.damagePhotos[0]?.location?.longitude || 144.9631}], 15);
+            const map = L.map('map').setView([${currentSet.damagePhotos[0]?.location?.latitude || -37.8136}, ${currentSet.damagePhotos[0]?.location?.longitude || 144.9631}], 16);
             
             // Add tile layers
             const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -228,48 +343,90 @@ const [isProcessing, setIsProcessing] = useState(false);
               attribution: '© Esri, Maxar, Earthstar Geographics'
             });
             
-            // Create custom icons
-            const createIcon = (color, type) => L.divIcon({
-              html: \`<div style="background: \${color}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">\${type}</div>\`,
-              className: 'custom-marker',
-              iconSize: [24, 24],
-              iconAnchor: [12, 12]
+            // Measurement variables
+            let measuring = false;
+            let measurementPoints = [];
+            let measurementLayer = L.layerGroup().addTo(map);
+            
+            // Store all markers for highlighting
+            let allMarkers = [];
+            let highlightedMarker = null;
+            
+            // Create enhanced icons
+            const createDamageIcon = (damageNumber, isHighlighted = false) => L.divIcon({
+              html: \`<div class="\${isHighlighted ? 'highlighted-marker' : ''}" style="width: 28px; height: 28px; border-radius: 50%; background-color: \${isHighlighted ? '#dc2626' : '#ef4444'}; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 11px;">\${damageNumber}</div>\`,
+              className: 'custom-damage-marker',
+              iconSize: [28, 28],
+              iconAnchor: [14, 14]
             });
             
-            // Add markers
-            let markerIndex = 1;
-            [...photoData.damagePhotos, ...photoData.preconditionPhotos, ...photoData.completionPhotos].forEach((photo, index) => {
+            const createTypeIcon = (type, color, isHighlighted = false) => L.divIcon({
+              html: \`<div class="\${isHighlighted ? 'highlighted-marker' : ''}" style="min-width: 32px; height: 24px; border-radius: 12px; background-color: \${isHighlighted ? '#dc2626' : color}; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 9px; padding: 0 4px;">\${type}</div>\`,
+              className: 'custom-type-marker',
+              iconSize: [32, 24],
+              iconAnchor: [16, 12]
+            });
+            
+            // Add enhanced markers
+            let damageIndex = 1;
+            photoData.damagePhotos.forEach((photo, index) => {
               if (photo.location?.latitude && photo.location?.longitude) {
-                const isDamage = photoData.damagePhotos.includes(photo);
-                const isPrecondition = photoData.preconditionPhotos.includes(photo);
-                const color = isDamage ? '#ef4444' : isPrecondition ? '#f59e0b' : '#22c55e';
-                const type = isDamage ? 'D' : isPrecondition ? 'P' : 'C';
-                const label = isDamage ? \`D\${markerIndex++}\` : (isPrecondition ? 'PRE' : 'COM');
-                
-                L.marker([photo.location.latitude, photo.location.longitude], {
-                  icon: createIcon(color, type)
+                const marker = L.marker([photo.location.latitude, photo.location.longitude], {
+                  icon: createDamageIcon(damageIndex)
                 }).addTo(map).bindPopup(\`
-                  <div style="min-width: 200px;">
-                    <img src="\${photo.url}" style="width: 100%; height: 120px; object-fit: cover; margin-bottom: 8px; border-radius: 4px;" />
-                    <p style="margin: 0; font-weight: bold;">\${label}</p>
-                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">\${photo.name}</p>
+                  <div style="min-width: 250px;">
+                    <img src="\${photo.url}" style="width: 100%; height: 150px; object-fit: cover; margin-bottom: 10px; border-radius: 6px;" />
+                    <h3 style="margin: 0; color: #ef4444; font-size: 16px;">🔴 Damage \${damageIndex}</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">\${photo.name}</p>
+                    <div style="margin-top: 10px; padding: 8px; background: #fee2e2; border-radius: 4px; font-size: 12px;">
+                      <strong>Assessment Point \${damageIndex}</strong><br>
+                      Click to view in gallery
+                    </div>
                   </div>
                 \`);
+                marker._photoName = photo.name;
+                marker._photoType = 'damage';
+                marker._damageNumber = damageIndex;
+                allMarkers.push(marker);
+                damageIndex++;
               }
             });
             
-            // Add controls
-            const controlsDiv = L.control({position: 'topright'});
-            controlsDiv.onAdd = function() {
-              const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-              div.innerHTML = \`
-                <a href="#" onclick="toggleSatellite()" title="Toggle Satellite">🛰️</a>
-                <a href="#" onclick="fitBounds()" title="Fit All Markers">📍</a>
-              \`;
-              return div;
-            };
-            controlsDiv.addTo(map);
+            photoData.preconditionPhotos.forEach(photo => {
+              if (photo.location?.latitude && photo.location?.longitude) {
+                const marker = L.marker([photo.location.latitude, photo.location.longitude], {
+                  icon: createTypeIcon('PRE', '#22c55e')
+                }).addTo(map).bindPopup(\`
+                  <div style="min-width: 250px;">
+                    <img src="\${photo.url}" style="width: 100%; height: 150px; object-fit: cover; margin-bottom: 10px; border-radius: 6px;" />
+                    <h3 style="margin: 0; color: #22c55e; font-size: 16px;">🟢 Precondition</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">\${photo.name}</p>
+                  </div>
+                \`);
+                marker._photoName = photo.name;
+                marker._photoType = 'precondition';
+                allMarkers.push(marker);
+              }
+            });
             
+            photoData.completionPhotos.forEach(photo => {
+              if (photo.location?.latitude && photo.location?.longitude) {
+                const marker = L.marker([photo.location.latitude, photo.location.longitude], {
+                  icon: createTypeIcon('COM', '#eab308')
+                }).addTo(map).bindPopup(\`
+                  <div style="min-width: 250px;">
+                    <img src="\${photo.url}" style="width: 100%; height: 150px; object-fit: cover; margin-bottom: 10px; border-radius: 6px;" />
+                    <h3 style="margin: 0; color: #eab308; font-size: 16px;">🟡 Completion</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">\${photo.name}</p>
+                  </div>
+                \`);
+                marker._photoName = photo.name;
+                marker._photoType = 'completion';
+                allMarkers.push(marker);
+              }
+            });
+            
+            // Map controls
             let usingSatellite = false;
             window.toggleSatellite = () => {
               if (usingSatellite) {
@@ -282,6 +439,87 @@ const [isProcessing, setIsProcessing] = useState(false);
               usingSatellite = !usingSatellite;
             };
             
+            window.startMeasurement = () => {
+              measuring = !measuring;
+              const btn = document.getElementById('measureBtn');
+              if (measuring) {
+                btn.classList.add('active');
+                btn.textContent = '⏹️ Stop';
+                map.getContainer().style.cursor = 'crosshair';
+              } else {
+                btn.classList.remove('active');
+                btn.textContent = '📏 Measure';
+                map.getContainer().style.cursor = '';
+                measurementPoints = [];
+              }
+            };
+            
+            // Measurement functionality
+            map.on('click', function(e) {
+              if (measuring) {
+                measurementPoints.push(e.latlng);
+                
+                if (measurementPoints.length === 1) {
+                  // First point
+                  L.marker(e.latlng, {
+                    icon: L.divIcon({
+                      html: '<div style="width: 12px; height: 12px; background: #3b82f6; border: 2px solid white; border-radius: 50%;"></div>',
+                      iconSize: [12, 12],
+                      iconAnchor: [6, 6]
+                    })
+                  }).addTo(measurementLayer);
+                } else if (measurementPoints.length === 2) {
+                  // Second point and line
+                  const point1 = measurementPoints[0];
+                  const point2 = measurementPoints[1];
+                  
+                  L.marker(point2, {
+                    icon: L.divIcon({
+                      html: '<div style="width: 12px; height: 12px; background: #ef4444; border: 2px solid white; border-radius: 50%;"></div>',
+                      iconSize: [12, 12],
+                      iconAnchor: [6, 6]
+                    })
+                  }).addTo(measurementLayer);
+                  
+                  const line = L.polyline([point1, point2], {color: '#3b82f6', weight: 3}).addTo(measurementLayer);
+                  const distance = Math.round(point1.distanceTo(point2));
+                  
+                  const midpoint = L.latLng(
+                    (point1.lat + point2.lat) / 2,
+                    (point1.lng + point2.lng) / 2
+                  );
+                  
+                  L.marker(midpoint, {
+                    icon: L.divIcon({
+                      html: \`<div style="background: white; padding: 4px 8px; border-radius: 4px; border: 2px solid #3b82f6; font-size: 12px; font-weight: bold; color: #3b82f6;">\${distance}m</div>\`,
+                      className: 'distance-label',
+                      iconAnchor: [0, 0]
+                    })
+                  }).addTo(measurementLayer);
+                  
+                  document.getElementById('distanceDisplay').style.display = 'block';
+                  document.getElementById('distanceValue').textContent = distance;
+                  
+                  measuring = false;
+                  document.getElementById('measureBtn').classList.remove('active');
+                  document.getElementById('measureBtn').textContent = '📏 Measure';
+                  map.getContainer().style.cursor = '';
+                  measurementPoints = [];
+                }
+              }
+            });
+            
+            window.clearMeasurements = () => {
+              measurementLayer.clearLayers();
+              document.getElementById('distanceDisplay').style.display = 'none';
+              measuring = false;
+              measurementPoints = [];
+              const btn = document.getElementById('measureBtn');
+              btn.classList.remove('active');
+              btn.textContent = '📏 Measure';
+              map.getContainer().style.cursor = '';
+            };
+            
             window.fitBounds = () => {
               const allCoords = [...photoData.damagePhotos, ...photoData.preconditionPhotos, ...photoData.completionPhotos]
                 .filter(p => p.location?.latitude && p.location?.longitude)
@@ -290,13 +528,60 @@ const [isProcessing, setIsProcessing] = useState(false);
                 map.fitBounds(allCoords, {padding: [20, 20]});
               }
             };
+            
+            // Listen for gallery-to-map highlighting
+            window.addEventListener('message', function(event) {
+              if (event.data.type === 'HIGHLIGHT_PHOTO') {
+                // Remove previous highlight
+                if (highlightedMarker) {
+                  const oldIcon = highlightedMarker._photoType === 'damage' 
+                    ? createDamageIcon(highlightedMarker._damageNumber, false)
+                    : createTypeIcon(
+                        highlightedMarker._photoType === 'precondition' ? 'PRE' : 'COM',
+                        highlightedMarker._photoType === 'precondition' ? '#22c55e' : '#eab308',
+                        false
+                      );
+                  highlightedMarker.setIcon(oldIcon);
+                }
+                
+                // Find and highlight the new marker
+                const targetMarker = allMarkers.find(marker => marker._photoName === event.data.photoName);
+                if (targetMarker) {
+                  const newIcon = targetMarker._photoType === 'damage' 
+                    ? createDamageIcon(targetMarker._damageNumber, true)
+                    : createTypeIcon(
+                        targetMarker._photoType === 'precondition' ? 'PRE' : 'COM',
+                        targetMarker._photoType === 'precondition' ? '#22c55e' : '#eab308',
+                        true
+                      );
+                  targetMarker.setIcon(newIcon);
+                  highlightedMarker = targetMarker;
+                  
+                  // Pan to the highlighted marker
+                  map.panTo(targetMarker.getLatLng());
+                }
+              }
+            });
+            
+            // Auto-fit on load
+            setTimeout(() => {
+              window.fitBounds();
+            }, 1000);
           </script>
         </body>
       </html>
     `);
-    mapWindow.document.close();
+    newMapWindow.document.close();
     
-    toast.success(`Map opened for ${currentSet.damageId}`);
+    // Handle window closing
+    const checkClosed = setInterval(() => {
+      if (newMapWindow.closed) {
+        setMapWindow(null);
+        clearInterval(checkClosed);
+      }
+    }, 1000);
+    
+    toast.success(`Enhanced map opened for ${currentSet.damageId} with real-time highlighting!`);
   }, [currentSet]);
 
   const handlePhotoSelect = useCallback((gallery: GalleryType, photo: PhotoMetadata) => {
@@ -446,6 +731,8 @@ const [isProcessing, setIsProcessing] = useState(false);
               onReset={handleReset}
               onToggleReportGenerator={() => setShowReportGenerator(!showReportGenerator)}
               showReportGenerator={showReportGenerator}
+              showRecommendations={showRecommendations}
+              onToggleRecommendations={() => setShowRecommendations(!showRecommendations)}
             />
             
             {/* Inline Approval Controls */}
@@ -463,6 +750,16 @@ const [isProcessing, setIsProcessing] = useState(false);
                 } : undefined}
               />
             )}
+
+            {/* Feature Recommendations Modal */}
+            <Dialog open={showRecommendations} onOpenChange={setShowRecommendations}>
+              <DialogContent className="max-w-6xl sm:max-w-7xl max-h-[90vh] overflow-y-auto z-[1200]">
+                <DialogHeader>
+                  <DialogTitle>Feature Recommendations & Roadmap</DialogTitle>
+                </DialogHeader>
+                <FeatureRecommendations />
+              </DialogContent>
+            </Dialog>
 
             {/* Report Generator Modal */}
             <Dialog open={showReportGenerator} onOpenChange={setShowReportGenerator}>

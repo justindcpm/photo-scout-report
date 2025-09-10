@@ -1,4 +1,4 @@
-import { Search, ChevronLeft, ChevronRight, MapPin, Eye, EyeOff, ArrowLeft, FileSpreadsheet } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, MapPin, Eye, EyeOff, ArrowLeft, FileSpreadsheet, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -19,6 +19,8 @@ interface ReportHeaderProps {
   onReset: () => void;
   onToggleReportGenerator: () => void;
   showReportGenerator: boolean;
+  showRecommendations?: boolean;
+  onToggleRecommendations?: () => void;
 }
 
 export const ReportHeader = ({
@@ -34,7 +36,9 @@ export const ReportHeader = ({
   mapVisible,
   onReset,
   onToggleReportGenerator,
-  showReportGenerator
+  showReportGenerator,
+  showRecommendations = false,
+  onToggleRecommendations
 }: ReportHeaderProps) => {
   const currentSet = photoSets[currentSetIndex];
   const filteredSets = photoSets.filter(set => 
@@ -59,7 +63,7 @@ export const ReportHeader = ({
             <div className="w-8 h-8 bg-primary-foreground/20 rounded-lg flex items-center justify-center">
               <Search className="w-4 h-4" />
             </div>
-            <h1 className="text-lg font-bold">DCPM Damage Report Viewer</h1>
+            <h1 className="text-lg font-bold">DCPM Damage Assessment Tool</h1>
           </div>
           
           <div className="flex gap-2">
@@ -72,6 +76,18 @@ export const ReportHeader = ({
               <MapPin className="w-4 h-4 mr-2" />
               Open Map
             </Button>
+            
+            {onToggleRecommendations && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onToggleRecommendations}
+                className={`shrink-0 ${showRecommendations ? 'bg-primary/10 border-primary' : ''}`}
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                {showRecommendations ? 'Hide Features' : 'Feature Ideas'}
+              </Button>
+            )}
             
             <Button
               variant="ghost"
