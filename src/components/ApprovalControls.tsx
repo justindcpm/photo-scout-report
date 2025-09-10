@@ -5,7 +5,11 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
-import { CheckCircle, XCircle, HelpCircle, MessageSquare } from 'lucide-react';
+import { CheckCircle, XCircle, HelpCircle, MessageSquare, FileText, Camera } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AssessmentForm } from './AssessmentForm';
+import { PhotoAnnotation } from './PhotoAnnotation';
+import { CompleteAssessment } from '@/types/assessment-fields';
 import { PhotoSetApproval } from '@/types/damage-report';
 
 interface ReportMetrics {
@@ -20,14 +24,18 @@ interface ApprovalControlsProps {
   metrics?: ReportMetrics;
   onMetricsChange?: (damageId: string, metrics: ReportMetrics) => void;
   lastMeasuredDistance?: number | null;
+  selectedPhoto?: { url: string; name: string };
 }
 
-export const ApprovalControls = ({ damageId, approval, onApprovalChange, metrics, onMetricsChange, lastMeasuredDistance }: ApprovalControlsProps) => {
+export const ApprovalControls = ({ damageId, approval, onApprovalChange, metrics, onMetricsChange, lastMeasuredDistance, selectedPhoto }: ApprovalControlsProps) => {
   const [comments, setComments] = useState(approval?.comments || '');
   const [showComments, setShowComments] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [distance, setDistance] = useState<string>(metrics?.distanceMeters != null ? String(metrics.distanceMeters) : '');
   const [cost, setCost] = useState<string>(metrics?.costAUD != null ? String(metrics.costAUD) : '');
+  const [showAssessmentForm, setShowAssessmentForm] = useState(false);
+  const [showPhotoAnnotation, setShowPhotoAnnotation] = useState(false);
+  const [assessment, setAssessment] = useState<Partial<CompleteAssessment>>();
 
   useEffect(() => {
     setDistance(metrics?.distanceMeters != null ? String(metrics.distanceMeters) : '');
@@ -136,6 +144,54 @@ export const ApprovalControls = ({ damageId, approval, onApprovalChange, metrics
           >
             <MessageSquare className="w-4 h-4" />
           </Button>
+
+          <Dialog open={showAssessmentForm} onOpenChange={setShowAssessmentForm}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="hover:bg-green-50 hover:border-green-300">
+                <FileText className="w-4 h-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Professional Assessment Form</DialogTitle>
+              </DialogHeader>
+              <AssessmentForm
+                damageId={damageId}
+                onAssessmentChange={setAssessment}
+                initialAssessment={assessment}
+              />
+            </DialogContent>
+          </Dialog>
+
+          {selectedPhoto && (
+            <Dialog open={showPhotoAnnotation} onOpenChange={setShowPhotoAnnotation}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="hover:bg-purple-50 hover:border-purple-300">
+                  <Camera className="w-4 h-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Annotate Photo: {selectedPhoto.name}</DialogTitle>
+                </DialogHeader>
+                <PhotoAnnotation
+                  imageUrl={selectedPhoto.url}
+                  onAnnotationsChange={(annotations) => {
+                    // Save annotations for this photo
+                    localStorage.setItem(`annotations_${damageId}_${selectedPhoto.name}`, JSON.stringify(annotations));
+                  }}
+                  initialAnnotations={(() => {
+                    try {
+                      const saved = localStorage.getItem(`annotations_${damageId}_${selectedPhoto.name}`);
+                      return saved ? JSON.parse(saved) : [];
+                    } catch {
+                      return [];
+                    }
+                  })()}
+                />
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
         {(showComments || approval?.comments) && (

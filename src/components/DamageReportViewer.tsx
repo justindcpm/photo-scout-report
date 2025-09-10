@@ -6,6 +6,7 @@ import { DamageMap } from './DamageMap';
 import type { DamageMapHandle } from './DamageMap';
 import { ReportGenerator } from './ReportGenerator';
 import { ApprovalControls } from './ApprovalControls';
+import { MeasurementTools } from './MeasurementTools';
 import { PhotoSet, GalleryType, DamageReportState, PhotoMetadata, PhotoSetApproval } from '@/types/damage-report';
 import { processFolderStructure } from '@/utils/photo-processing';
 import { toast } from 'sonner';
@@ -342,6 +343,10 @@ const [isProcessing, setIsProcessing] = useState(false);
                 metrics={metricsById[currentSet.damageId]}
                 onMetricsChange={handleMetricsChange}
                 lastMeasuredDistance={lastMeasuredDistance}
+                selectedPhoto={state.selectedPhotos.damage ? {
+                  url: state.selectedPhotos.damage.url,
+                  name: state.selectedPhotos.damage.name
+                } : undefined}
               />
             )}
 
