@@ -21,6 +21,7 @@ interface PhotoGalleryProps {
   manualMode?: boolean;
   onPhotosUpload?: (files: FileList) => void;
   onClearGallery?: () => void;
+  setMode?: boolean;
 }
 
 export const PhotoGallery = ({
@@ -38,7 +39,8 @@ export const PhotoGallery = ({
   visible,
   manualMode = false,
   onPhotosUpload,
-  onClearGallery
+  onClearGallery,
+  setMode = false
 }: PhotoGalleryProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -151,9 +153,16 @@ export const PhotoGallery = ({
       />
       
       {/* Ultra Compact Header */}
-      <div className={`p-1 border-b bg-${getTypeColor(type)} text-${getTypeColor(type)}-foreground`}>
+      <div className={`p-1 border-b bg-${getTypeColor(type)} text-${getTypeColor(type)}-foreground ${setMode ? 'ring-2 ring-primary ring-opacity-60' : ''}`}>
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-xs uppercase tracking-wide">{type}</h3>
+          <div className="flex items-center gap-1">
+            <h3 className="font-semibold text-xs uppercase tracking-wide">{type}</h3>
+            {setMode && (
+              <div className="bg-primary/20 text-primary-foreground px-1 py-0.5 rounded text-xs font-bold">
+                SET
+              </div>
+            )}
+          </div>
           <div className="flex gap-0.5">
             {manualMode && (
               <>
@@ -302,18 +311,23 @@ export const PhotoGallery = ({
             )}
           </div>
           
-          {photos.length > 0 && selectedPhoto && (
-            <div className="flex items-center justify-center mt-1">
-              <p className="text-xs text-muted-foreground/80 font-medium">
-                {getCurrentPhotoIndex() + 1} / {photos.length}
-                {selectedPhoto && (
-                  <span className="ml-2 text-muted-foreground/60 font-normal truncate max-w-[120px] inline-block">
-                    {selectedPhoto.name.split('.')[0]}
-                  </span>
-                )}
-              </p>
-            </div>
-          )}
+              {photos.length > 0 && selectedPhoto && (
+                <div className="flex items-center justify-center mt-1">
+                  <p className="text-xs text-muted-foreground/80 font-medium">
+                    {getCurrentPhotoIndex() + 1} / {photos.length}
+                    {setMode && (
+                      <span className="ml-2 px-1 py-0.5 bg-primary/20 text-primary rounded text-xs font-bold">
+                        Set {getCurrentPhotoIndex() + 1}
+                      </span>
+                    )}
+                    {selectedPhoto && (
+                      <span className="ml-2 text-muted-foreground/60 font-normal truncate max-w-[120px] inline-block">
+                        {selectedPhoto.name.split('.')[0]}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
         </div>
       </div>
     </Card>

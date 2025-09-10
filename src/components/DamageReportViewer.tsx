@@ -35,6 +35,7 @@ export const DamageReportViewer = () => {
   });
   
   const [manualMode, setManualMode] = useState(false);
+  const [setMode, setSetMode] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showReportGenerator, setShowReportGenerator] = useState(false);
   const [showUserGuide, setShowUserGuide] = useState(false);
@@ -846,22 +847,131 @@ export const DamageReportViewer = () => {
       }
     }, 1000);
     
-    toast.success(`Enhanced map opened for ${currentSet.damageId} with real-time highlighting!`);
-  }, [currentSet]);
-
-  const handlePhotoSelect = useCallback((gallery: GalleryType, photo: PhotoMetadata) => {
-    setState(prev => ({
-      ...prev,
-      galleries: {
-        ...prev.galleries,
-        [gallery]: { ...prev.galleries[gallery], selectedPhoto: photo }
-      },
-      selectedPhotos: {
-        ...prev.selectedPhotos,
-        [gallery]: photo
-      }
-    }));
   }, []);
+
+  const handlePhotoSelect = useCallback((galleryType: GalleryType, photo: PhotoMetadata) => {
+    if (setMode) {
+      // In set mode, find the index and sync all galleries to the same index
+      const currentGallery = state.galleries[galleryType];
+      const photoIndex = currentGallery.candidatePhotos.findIndex(p => p.name === photo.name);
+      
+      if (photoIndex >= 0) {
+        setState(prev => {
+          const newGalleries = { ...prev.galleries };
+          
+          // Update all galleries to the same index if they have photos at that index
+          (['precondition', 'damage', 'completion'] as GalleryType[]).forEach(type => {
+            const gallery = newGalleries[type];
+            if (gallery.candidatePhotos[photoIndex]) {
+              newGalleries[type] = {
+                ...gallery,
+                selectedPhoto: gallery.candidatePhotos[photoIndex]
+              };
+            }
+          });
+          
+          return {
+            ...prev,
+            galleries: newGalleries
+          };
+        });
+        
+        toast.success(`Set ${photoIndex + 1} selected across all galleries`);
+      }
+    } else {
+      // Normal mode - only update the specific gallery
+      setState(prev => ({
+        ...prev,
+        galleries: {
+          ...prev.galleries,
+          [galleryType]: {
+            ...prev.galleries[galleryType],
+            selectedPhoto: photo
+          }
+        },
+        selectedPhotos: {
+          ...prev.selectedPhotos,
+          [galleryType]: photo
+        }
+      }));
+    }
+  }, [state.galleries, setMode]);
+
+  const toggleSetMode = useCallback(() => {
+    setSetMode(prev => {
+      const newMode = !prev;
+      if (newMode) {
+        // When enabling set mode, sync all galleries to index 0 if available
+        setState(prevState => {
+          const newGalleries = { ...prevState.galleries };
+          
+          (['precondition', 'damage', 'completion'] as GalleryType[]).forEach(type => {
+            const gallery = newGalleries[type];
+            if (gallery.candidatePhotos[0]) {
+              newGalleries[type] = {
+                ...gallery,
+                selectedPhoto: gallery.candidatePhotos[0]
+              };
+            }
+          });
+          
+          return {
+            ...prevState,
+            galleries: newGalleries
+          };
+        });
+        
+        toast.success('Set Mode enabled - photos will navigate together');
+      } else {
+        toast.info('Set Mode disabled - independent photo navigation');
+      }
+      return newMode;
+    });
+  }, []);
+
+  const toggleManualMode = useCallback(() => {
+    setManualMode(prev => {
+      const newMode = !prev;
+      if (newMode) {
+        // Clear all galleries when entering manual mode
+        setState(prevState => ({
+          ...prevState,
+          galleries: {
+            precondition: { ...prevState.galleries.precondition, candidatePhotos: [], selectedPhoto: undefined },
+            damage: { ...prevState.galleries.damage, candidatePhotos: [], selectedPhoto: undefined },
+            completion: { ...prevState.galleries.completion, candidatePhotos: [], selectedPhoto: undefined }
+          }
+        }));
+        toast.info('Manual mode enabled - drag & drop photos to galleries');
+      } else {
+        // Restore original data when exiting manual mode if available
+        if (currentSet) {
+          setState(prevState => ({
+            ...prevState,
+            galleries: {
+              precondition: {
+                ...prevState.galleries.precondition,
+                candidatePhotos: currentSet.preconditionPhotos,
+                selectedPhoto: currentSet.preconditionPhotos[0]
+              },
+              damage: {
+                ...prevState.galleries.damage,
+                candidatePhotos: currentSet.damagePhotos,
+                selectedPhoto: currentSet.damagePhotos[0]
+              },
+              completion: {
+                ...prevState.galleries.completion,
+                candidatePhotos: currentSet.completionPhotos,
+                selectedPhoto: currentSet.completionPhotos[0]
+              }
+            }
+          }));
+        }
+        toast.info('Manual mode disabled - restored original data');
+      }
+      return newMode;
+    });
+  }, [currentSet]);
 
   const handleRotate = useCallback((gallery: GalleryType) => {
     setState(prev => ({
@@ -991,50 +1101,6 @@ export const DamageReportViewer = () => {
     toast.success(`Cleared ${galleryType} gallery`);
   }, []);
 
-  const toggleManualMode = useCallback(() => {
-    setManualMode(prev => {
-      const newMode = !prev;
-      if (newMode) {
-        // Clear all galleries when entering manual mode
-        setState(prevState => ({
-          ...prevState,
-          galleries: {
-            precondition: { ...prevState.galleries.precondition, candidatePhotos: [], selectedPhoto: undefined },
-            damage: { ...prevState.galleries.damage, candidatePhotos: [], selectedPhoto: undefined },
-            completion: { ...prevState.galleries.completion, candidatePhotos: [], selectedPhoto: undefined }
-          }
-        }));
-        toast.info('Manual mode enabled - drag & drop photos to galleries');
-      } else {
-        // Restore original data when exiting manual mode if available
-        if (currentSet) {
-          setState(prevState => ({
-            ...prevState,
-            galleries: {
-              precondition: {
-                ...prevState.galleries.precondition,
-                candidatePhotos: currentSet.preconditionPhotos,
-                selectedPhoto: currentSet.preconditionPhotos[0]
-              },
-              damage: {
-                ...prevState.galleries.damage,
-                candidatePhotos: currentSet.damagePhotos,
-                selectedPhoto: currentSet.damagePhotos[0]
-              },
-              completion: {
-                ...prevState.galleries.completion,
-                candidatePhotos: currentSet.completionPhotos,
-                selectedPhoto: currentSet.completionPhotos[0]
-              }
-            }
-          }));
-        }
-        toast.info('Manual mode disabled - restored original data');
-      }
-      return newMode;
-    });
-  }, [currentSet]);
-
   useEffect(() => {
     if (!currentSet) return;
     try {
@@ -1086,6 +1152,8 @@ export const DamageReportViewer = () => {
               onToggleUserGuide={() => setShowUserGuide(!showUserGuide)}
               manualMode={manualMode}
               onToggleManualMode={toggleManualMode}
+              setMode={setMode}
+              onToggleSetMode={toggleSetMode}
             />
             
             {/* Inline Approval Controls */}
@@ -1140,6 +1208,7 @@ export const DamageReportViewer = () => {
                   manualMode={manualMode}
                   onPhotosUpload={(files) => handleManualPhotoUpload('precondition', files)}
                   onClearGallery={() => handleClearGallery('precondition')}
+                  setMode={setMode}
                 />
 
                 <PhotoGallery
@@ -1158,6 +1227,7 @@ export const DamageReportViewer = () => {
                   manualMode={manualMode}
                   onPhotosUpload={(files) => handleManualPhotoUpload('damage', files)}
                   onClearGallery={() => handleClearGallery('damage')}
+                  setMode={setMode}
                 />
 
                 <PhotoGallery
@@ -1176,6 +1246,7 @@ export const DamageReportViewer = () => {
                   manualMode={manualMode}
                   onPhotosUpload={(files) => handleManualPhotoUpload('completion', files)}
                   onClearGallery={() => handleClearGallery('completion')}
+                  setMode={setMode}
                 />
               </div>
               

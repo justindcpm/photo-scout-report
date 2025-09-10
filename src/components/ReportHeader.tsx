@@ -1,4 +1,4 @@
-import { Search, ChevronLeft, ChevronRight, MapPin, Eye, EyeOff, ArrowLeft, FileSpreadsheet, Zap, HelpCircle, Camera, Edit3 } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, MapPin, Eye, EyeOff, ArrowLeft, FileSpreadsheet, Zap, HelpCircle, Camera, Edit3, Link } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -23,6 +23,8 @@ interface ReportHeaderProps {
   onToggleUserGuide?: () => void;
   manualMode?: boolean;
   onToggleManualMode?: () => void;
+  setMode?: boolean;
+  onToggleSetMode?: () => void;
 }
 
 export const ReportHeader = ({
@@ -42,7 +44,9 @@ export const ReportHeader = ({
   showUserGuide = false,
   onToggleUserGuide,
   manualMode = false,
-  onToggleManualMode
+  onToggleManualMode,
+  setMode = false,
+  onToggleSetMode
 }: ReportHeaderProps) => {
   const currentSet = photoSets[currentSetIndex];
   const filteredSets = photoSets.filter(set => 
@@ -80,6 +84,18 @@ export const ReportHeader = ({
               >
                 {manualMode ? <Edit3 className="w-4 h-4 mr-2" /> : <Camera className="w-4 h-4 mr-2" />}
                 {manualMode ? 'Manual Mode' : 'Auto Mode'}
+              </Button>
+            )}
+            
+            {onToggleSetMode && (
+              <Button
+                variant={setMode ? "default" : "outline"}
+                size="sm"
+                onClick={onToggleSetMode}
+                className="shrink-0"
+              >
+                <Link className="w-4 h-4 mr-2" />
+                {setMode ? 'Set Mode' : 'Individual'}
               </Button>
             )}
             
