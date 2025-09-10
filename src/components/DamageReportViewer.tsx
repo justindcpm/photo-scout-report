@@ -289,6 +289,23 @@ export const DamageReportViewer = () => {
             }
             .tool-btn:hover { background: rgba(255,255,255,0.3); transform: translateY(-1px); }
             .tool-btn.active { background: rgba(59, 130, 246, 0.8); }
+            .filter-group { display: flex; align-items: center; gap: 8px; }
+            .filter-label { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.9); margin-right: 4px; }
+            .filter-btn { 
+              background: rgba(255,255,255,0.2); 
+              border: 1px solid rgba(255,255,255,0.3); 
+              color: white; 
+              padding: 6px 12px; 
+              border-radius: 4px; 
+              cursor: pointer; 
+              font-size: 11px;
+              font-weight: 600;
+              transition: all 0.3s ease;
+            }
+            .filter-btn:hover { background: rgba(255,255,255,0.3); transform: translateY(-1px); }
+            .filter-btn.active { background: rgba(34, 197, 94, 0.8); border-color: rgba(34, 197, 94, 1); }
+            .filter-btn.inactive { background: rgba(239, 68, 68, 0.8); border-color: rgba(239, 68, 68, 1); opacity: 0.7; }
+            .tool-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.3); margin: 0 8px; }
             .leaflet-container { background: #f8fafc; }
             .legend { 
               position: absolute; 
@@ -325,15 +342,22 @@ export const DamageReportViewer = () => {
           </style>
         </head>
         <body>
-          <div class="map-header">
-            <div class="map-title">📍 ${currentSet.damageId} - Interactive Assessment Map</div>
-            <div class="map-tools">
-              <button class="tool-btn" onclick="toggleSatellite()" title="Toggle Satellite View">🛰️ Satellite</button>
-              <button class="tool-btn" onclick="startMeasurement()" title="Measure Distance" id="measureBtn">📏 Measure</button>
-              <button class="tool-btn" onclick="clearMeasurements()" title="Clear All Measurements">🗑️ Clear</button>
-              <button class="tool-btn" onclick="fitBounds()" title="Fit All Markers">🎯 Fit View</button>
+            <div class="map-header">
+              <div class="map-title">📍 ${currentSet.damageId} - Interactive Assessment Map</div>
+              <div class="map-tools">
+                <div class="filter-group">
+                  <span class="filter-label">Show:</span>
+                  <button class="filter-btn active" onclick="toggleFilter('damage')" id="damageFilter" title="Toggle Damage Markers">🔴 Damage</button>
+                  <button class="filter-btn active" onclick="toggleFilter('precondition')" id="preconditionFilter" title="Toggle Precondition Markers">🟢 Pre</button>
+                  <button class="filter-btn active" onclick="toggleFilter('completion')" id="completionFilter" title="Toggle Completion Markers">🟡 Com</button>
+                </div>
+                <div class="tool-divider"></div>
+                <button class="tool-btn" onclick="toggleSatellite()" title="Toggle Satellite View">🛰️ Satellite</button>
+                <button class="tool-btn" onclick="startMeasurement()" title="Measure Distance" id="measureBtn">📏 Measure</button>
+                <button class="tool-btn" onclick="clearMeasurements()" title="Clear All Measurements">🗑️ Clear</button>
+                <button class="tool-btn" onclick="fitBounds()" title="Fit All Markers">🎯 Fit View</button>
+              </div>
             </div>
-          </div>
           <div id="map"></div>
           <div class="legend">
             <h4 style="margin: 0 0 10px 0; font-size: 14px;">Map Legend</h4>
@@ -382,7 +406,17 @@ export const DamageReportViewer = () => {
             
             // Store all markers for highlighting and real-time sync
             let allMarkers = [];
+            let damageMarkers = [];
+            let preconditionMarkers = [];
+            let completionMarkers = [];
             let highlightedMarker = null;
+            
+            // Filter state
+            let markerFilters = {
+              damage: true,
+              precondition: true,
+              completion: true
+            };
 
             // Enhanced photo highlighting system
             function highlightPhotoMarker(photoName) {
@@ -438,6 +472,9 @@ export const DamageReportViewer = () => {
                 map.removeLayer(marker);
               });
               allMarkers = [];
+              damageMarkers = [];
+              preconditionMarkers = [];
+              completionMarkers = [];
               highlightedMarker = null;
 
               // Update window title
@@ -465,6 +502,7 @@ export const DamageReportViewer = () => {
                   marker._photoType = 'damage';
                   marker._damageNumber = damageIndex;
                   allMarkers.push(marker);
+                  damageMarkers.push(marker);
                   damageIndex++;
                 }
               });
@@ -483,6 +521,7 @@ export const DamageReportViewer = () => {
                   marker._photoName = photo.name;
                   marker._photoType = 'precondition';
                   allMarkers.push(marker);
+                  preconditionMarkers.push(marker);
                 }
               });
               
@@ -500,6 +539,7 @@ export const DamageReportViewer = () => {
                   marker._photoName = photo.name;
                   marker._photoType = 'completion';
                   allMarkers.push(marker);
+                  completionMarkers.push(marker);
                 }
               });
 
@@ -509,7 +549,69 @@ export const DamageReportViewer = () => {
                 map.fitBounds(group.getBounds().pad(0.1));
               }
 
+              // Apply current filter state
+              applyFilters();
+
               console.log('Updated map with new set:', newPhotoData.damageId, 'Total markers:', allMarkers.length);
+            }
+
+            // Filter control functions
+            function toggleFilter(type) {
+              markerFilters[type] = !markerFilters[type];
+              const button = document.getElementById(type + 'Filter');
+              
+              if (markerFilters[type]) {
+                button.classList.remove('inactive');
+                button.classList.add('active');
+              } else {
+                button.classList.remove('active');
+                button.classList.add('inactive');
+              }
+              
+              applyFilters();
+            }
+
+            function applyFilters() {
+              // Show/hide damage markers
+              damageMarkers.forEach(marker => {
+                if (markerFilters.damage) {
+                  if (!map.hasLayer(marker)) map.addLayer(marker);
+                } else {
+                  if (map.hasLayer(marker)) map.removeLayer(marker);
+                }
+              });
+
+              // Show/hide precondition markers
+              preconditionMarkers.forEach(marker => {
+                if (markerFilters.precondition) {
+                  if (!map.hasLayer(marker)) map.addLayer(marker);
+                } else {
+                  if (map.hasLayer(marker)) map.removeLayer(marker);
+                }
+              });
+
+              // Show/hide completion markers
+              completionMarkers.forEach(marker => {
+                if (markerFilters.completion) {
+                  if (!map.hasLayer(marker)) map.addLayer(marker);
+                } else {
+                  if (map.hasLayer(marker)) map.removeLayer(marker);
+                }
+              });
+
+              // Update legend visibility based on filters
+              updateLegendVisibility();
+            }
+
+            function updateLegendVisibility() {
+              const legend = document.querySelector('.legend');
+              const damageItem = legend.children[1];
+              const preconditionItem = legend.children[2];
+              const completionItem = legend.children[3];
+
+              damageItem.style.opacity = markerFilters.damage ? '1' : '0.3';
+              preconditionItem.style.opacity = markerFilters.precondition ? '1' : '0.3';
+              completionItem.style.opacity = markerFilters.completion ? '1' : '0.3';
             }
             
             // Create enhanced icons
@@ -548,6 +650,7 @@ export const DamageReportViewer = () => {
                 marker._photoType = 'damage';
                 marker._damageNumber = damageIndex;
                 allMarkers.push(marker);
+                damageMarkers.push(marker);
                 damageIndex++;
               }
             });
@@ -563,9 +666,10 @@ export const DamageReportViewer = () => {
                     <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">\${photo.name}</p>
                   </div>
                 \`);
-                marker._photoName = photo.name;
-                marker._photoType = 'precondition';
-                allMarkers.push(marker);
+              marker._photoName = photo.name;
+              marker._photoType = 'precondition';
+              allMarkers.push(marker);
+              preconditionMarkers.push(marker);
               }
             });
             
@@ -580,9 +684,10 @@ export const DamageReportViewer = () => {
                     <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">\${photo.name}</p>
                   </div>
                 \`);
-                marker._photoName = photo.name;
-                marker._photoType = 'completion';
-                allMarkers.push(marker);
+              marker._photoName = photo.name;
+              marker._photoType = 'completion';
+              allMarkers.push(marker);
+              completionMarkers.push(marker);
               }
             });
             
