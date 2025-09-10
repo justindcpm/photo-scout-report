@@ -247,6 +247,8 @@ export const DamageReportViewer = () => {
   const handleOpenMapWindow = useCallback(() => {
     if (!currentSet) return;
     
+    console.log('Opening map window for:', currentSet.damageId);
+    
     const newMapWindow = window.open('', '_blank', 'width=1400,height=900,scrollbars=yes,resizable=yes');
     if (!newMapWindow) {
       toast.error('Failed to open map window. Please allow popups.');
@@ -255,7 +257,8 @@ export const DamageReportViewer = () => {
 
     setMapWindow(newMapWindow);
 
-    newMapWindow.document.write(`
+    try {
+      newMapWindow.document.write(`
       <!DOCTYPE html>
       <html lang="en">
         <head>
@@ -381,6 +384,8 @@ export const DamageReportViewer = () => {
           
           <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
           <script>
+            console.log('Map initialization started');
+            
             const photoData = ${JSON.stringify({
               damagePhotos: currentSet.damagePhotos,
               preconditionPhotos: currentSet.preconditionPhotos,
@@ -388,8 +393,12 @@ export const DamageReportViewer = () => {
               damageId: currentSet.damageId
             })};
             
+            console.log('Photo data loaded:', photoData.damageId);
+            
             // Initialize map
             const map = L.map('map').setView([${currentSet.damagePhotos[0]?.location?.latitude || -37.8136}, ${currentSet.damagePhotos[0]?.location?.longitude || 144.9631}], 16);
+            
+            console.log('Map created successfully');
             
             // Add tile layers
             const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -418,6 +427,8 @@ export const DamageReportViewer = () => {
               precondition: true,
               completion: true
             };
+
+            console.log('Map variables initialized');
 
             // Enhanced photo highlighting system
             function highlightPhotoMarker(photoName) {
@@ -831,13 +842,28 @@ export const DamageReportViewer = () => {
             
             // Auto-fit on load
             setTimeout(() => {
-              window.fitBounds();
+              try {
+                if (typeof fitBounds === 'function') {
+                  fitBounds();
+                }
+                console.log('Map setup completed successfully');
+              } catch (e) {
+                console.error('Error in map auto-fit:', e);
+              }
             }, 1000);
           </script>
         </body>
       </html>
     `);
+    
     newMapWindow.document.close();
+    console.log('Map window document written and closed');
+    
+    } catch (error) {
+      console.error('Error creating map window:', error);
+      toast.error('Failed to create map window. Check console for details.');
+      return;
+    }
     
     // Handle window closing
     const checkClosed = setInterval(() => {
@@ -846,8 +872,8 @@ export const DamageReportViewer = () => {
         clearInterval(checkClosed);
       }
     }, 1000);
-    
-  }, []);
+    toast.success(`Enhanced map opened for ${currentSet.damageId} with real-time highlighting!`);
+  }, [currentSet]);
 
   const handlePhotoSelect = useCallback((galleryType: GalleryType, photo: PhotoMetadata) => {
     if (setMode) {
