@@ -7,6 +7,7 @@ import type { DamageMapHandle } from './DamageMap';
 import { ReportGenerator } from './ReportGenerator';
 import { ApprovalControls } from './ApprovalControls';
 import { FeatureRecommendations } from './FeatureRecommendations';
+import { UserGuide } from './UserGuide';
 import { PhotoSet, GalleryType, DamageReportState, PhotoMetadata, PhotoSetApproval } from '@/types/damage-report';
 import { processFolderStructure } from '@/utils/photo-processing';
 import { toast } from 'sonner';
@@ -36,6 +37,7 @@ export const DamageReportViewer = () => {
 const [isProcessing, setIsProcessing] = useState(false);
   const [showReportGenerator, setShowReportGenerator] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
+  const [showUserGuide, setShowUserGuide] = useState(false);
   const mapRef = useRef<DamageMapHandle | null>(null);
   const [editorMode, setEditorMode] = useState(false);
   const [metricsById, setMetricsById] = useState<Record<string, ReportMetrics>>({});
@@ -69,6 +71,13 @@ const [isProcessing, setIsProcessing] = useState(false);
     state.galleries.completion.selectedPhoto,
     mapWindow
   ]);
+
+  // Get currently highlighted photo for map synchronization
+  const getHighlightedPhoto = () => {
+    return state.galleries.damage.selectedPhoto || 
+           state.galleries.precondition.selectedPhoto || 
+           state.galleries.completion.selectedPhoto;
+  };
 
   const currentSet = state.photoSets[state.currentSetIndex];
 
@@ -348,9 +357,53 @@ const [isProcessing, setIsProcessing] = useState(false);
             let measurementPoints = [];
             let measurementLayer = L.layerGroup().addTo(map);
             
-            // Store all markers for highlighting
+            // Store all markers for highlighting and real-time sync
             let allMarkers = [];
             let highlightedMarker = null;
+
+            // Enhanced photo highlighting system
+            function highlightPhotoMarker(photoName) {
+              // Remove previous highlight
+              if (highlightedMarker) {
+                highlightedMarker.setIcon(highlightedMarker._originalIcon);
+                highlightedMarker = null;
+              }
+
+              // Find and highlight new marker
+              allMarkers.forEach(marker => {
+                if (marker._photoName === photoName) {
+                  marker._originalIcon = marker._originalIcon || marker.getIcon();
+                  
+                  const isHighlighted = true;
+                  if (marker._photoType === 'damage') {
+                    marker.setIcon(createDamageIcon(marker._damageNumber, isHighlighted));
+                  } else {
+                    const color = marker._photoType === 'precondition' ? '#22c55e' : '#eab308';
+                    const type = marker._photoType === 'precondition' ? 'PRE' : 'COM';
+                    marker.setIcon(createTypeIcon(type, color, isHighlighted));
+                  }
+                  
+                  highlightedMarker = marker;
+                  
+                  // Center map on highlighted marker with animation
+                  map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 16), {
+                    duration: 1,
+                    easeLinearity: 0.25
+                  });
+                  
+                  // Open popup briefly to show selection
+                  marker.openPopup();
+                  setTimeout(() => marker.closePopup(), 2000);
+                }
+              });
+            }
+
+            // Listen for photo highlight messages from main window
+            window.addEventListener('message', (event) => {
+              if (event.data.type === 'HIGHLIGHT_PHOTO' && event.data.photoName) {
+                highlightPhotoMarker(event.data.photoName);
+              }
+            });
             
             // Create enhanced icons
             const createDamageIcon = (damageNumber, isHighlighted = false) => L.divIcon({
@@ -729,10 +782,12 @@ const [isProcessing, setIsProcessing] = useState(false);
               onOpenMapWindow={handleOpenMapWindow}
               mapVisible={false}
               onReset={handleReset}
-              onToggleReportGenerator={() => setShowReportGenerator(!showReportGenerator)}
-              showReportGenerator={showReportGenerator}
-              showRecommendations={showRecommendations}
-              onToggleRecommendations={() => setShowRecommendations(!showRecommendations)}
+          onToggleReportGenerator={() => setShowReportGenerator(!showReportGenerator)}
+          showReportGenerator={showReportGenerator}
+          showRecommendations={showRecommendations}
+          onToggleRecommendations={() => setShowRecommendations(!showRecommendations)}
+          showUserGuide={showUserGuide}
+          onToggleUserGuide={() => setShowUserGuide(!showUserGuide)}
             />
             
             {/* Inline Approval Controls */}
@@ -750,16 +805,6 @@ const [isProcessing, setIsProcessing] = useState(false);
                 } : undefined}
               />
             )}
-
-            {/* Feature Recommendations Modal */}
-            <Dialog open={showRecommendations} onOpenChange={setShowRecommendations}>
-              <DialogContent className="max-w-6xl sm:max-w-7xl max-h-[90vh] overflow-y-auto z-[1200]">
-                <DialogHeader>
-                  <DialogTitle>Feature Recommendations & Roadmap</DialogTitle>
-                </DialogHeader>
-                <FeatureRecommendations />
-              </DialogContent>
-            </Dialog>
 
             {/* Report Generator Modal */}
             <Dialog open={showReportGenerator} onOpenChange={setShowReportGenerator}>
@@ -826,6 +871,17 @@ const [isProcessing, setIsProcessing] = useState(false);
           </>
         )}
       </div>
+
+      <FeatureRecommendations 
+        open={showRecommendations} 
+        onOpenChange={setShowRecommendations} 
+      />
+
+      <UserGuide 
+        open={showUserGuide} 
+        onOpenChange={setShowUserGuide} 
+      />
+
       {/* Brand logo badge - non-interactive */}
       <img
         src="/lovable-uploads/d90971a8-7c57-4983-af58-e580d20396fe.png"

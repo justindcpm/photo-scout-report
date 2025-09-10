@@ -1,4 +1,4 @@
-import { Search, ChevronLeft, ChevronRight, MapPin, Eye, EyeOff, ArrowLeft, FileSpreadsheet, Zap } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, MapPin, Eye, EyeOff, ArrowLeft, FileSpreadsheet, Zap, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -21,6 +21,8 @@ interface ReportHeaderProps {
   showReportGenerator: boolean;
   showRecommendations?: boolean;
   onToggleRecommendations?: () => void;
+  showUserGuide?: boolean;
+  onToggleUserGuide?: () => void;
 }
 
 export const ReportHeader = ({
@@ -38,7 +40,9 @@ export const ReportHeader = ({
   onToggleReportGenerator,
   showReportGenerator,
   showRecommendations = false,
-  onToggleRecommendations
+  onToggleRecommendations,
+  showUserGuide = false,
+  onToggleUserGuide
 }: ReportHeaderProps) => {
   const currentSet = photoSets[currentSetIndex];
   const filteredSets = photoSets.filter(set => 
@@ -76,6 +80,18 @@ export const ReportHeader = ({
               <MapPin className="w-4 h-4 mr-2" />
               Open Map
             </Button>
+            
+            {onToggleUserGuide && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onToggleUserGuide}
+                className={`shrink-0 ${showUserGuide ? 'bg-primary/10 border-primary' : ''}`}
+              >
+                <HelpCircle className="w-4 h-4 mr-2" />
+                User Guide
+              </Button>
+            )}
             
             {onToggleRecommendations && (
               <Button

@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   Camera, 
   MapPin, 
@@ -28,6 +29,11 @@ interface FeatureRecommendation {
   priority: 'High' | 'Medium' | 'Low';
   effort: 'Low' | 'Medium' | 'High';
   benefits: string[];
+}
+
+interface FeatureRecommendationsProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 const recommendations: FeatureRecommendation[] = [
@@ -171,18 +177,22 @@ const effortColors = {
   'Low': 'secondary'
 } as const;
 
-export const FeatureRecommendations = () => {
+export const FeatureRecommendations = ({ open, onOpenChange }: FeatureRecommendationsProps) => {
   const categories = [...new Set(recommendations.map(r => r.category))];
 
   return (
-    <div className="space-y-6">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold text-foreground">🚀 Feature Recommendations</h2>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
-          Take your Damage Assessment Tool to the next level with these recommended features, 
-          prioritized by impact and implementation effort.
-        </p>
-      </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>🚀 Feature Recommendations</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6">
+          <div className="text-center space-y-2">
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Take your Damage Assessment Tool to the next level with these recommended features, 
+              prioritized by impact and implementation effort.
+            </p>
+          </div>
 
       {categories.map(category => (
         <div key={category} className="space-y-4">
@@ -268,6 +278,8 @@ export const FeatureRecommendations = () => {
           </Button>
         </div>
       </Card>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
