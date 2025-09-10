@@ -40,6 +40,9 @@ const [isProcessing, setIsProcessing] = useState(false);
   const [metricsById, setMetricsById] = useState<Record<string, ReportMetrics>>({});
   const [lastMeasuredDistance, setLastMeasuredDistance] = useState<number | null>(null);
 
+  // Declare currentSet early to avoid temporal dead zone issues
+  const currentSet = state.photoSets[state.currentSetIndex];
+
   useEffect(() => {
     const saved = localStorage.getItem('dm_editor_mode');
     if (saved === '1') setEditorMode(true);
@@ -178,8 +181,6 @@ const [isProcessing, setIsProcessing] = useState(false);
       }
     }));
   }, []);
-
-  const currentSet = state.photoSets[state.currentSetIndex];
 
   const handleOpenMapWindow = useCallback(() => {
     if (!currentSet) return;
