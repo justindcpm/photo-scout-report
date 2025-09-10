@@ -34,6 +34,8 @@ export const DamageReportViewer = () => {
     mapVisible: true,
     approvals: {}
   });
+  
+  const [manualMode, setManualMode] = useState(false);
 const [isProcessing, setIsProcessing] = useState(false);
   const [showReportGenerator, setShowReportGenerator] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
@@ -737,6 +739,92 @@ const [isProcessing, setIsProcessing] = useState(false);
 
   const handleDistanceChange = useCallback((distance: number) => { setLastMeasuredDistance(distance); }, []);
 
+  const handleManualPhotoUpload = useCallback((galleryType: GalleryType, files: FileList) => {
+    const newPhotos: PhotoMetadata[] = Array.from(files).map(file => ({
+      file,
+      name: file.name,
+      url: URL.createObjectURL(file),
+      timestamp: new Date()
+    }));
+
+    setState(prev => {
+      const updatedGallery = {
+        ...prev.galleries[galleryType],
+        candidatePhotos: [...prev.galleries[galleryType].candidatePhotos, ...newPhotos],
+        selectedPhoto: prev.galleries[galleryType].selectedPhoto || newPhotos[0]
+      };
+
+      return {
+        ...prev,
+        galleries: {
+          ...prev.galleries,
+          [galleryType]: updatedGallery
+        }
+      };
+    });
+
+    toast.success(`Added ${newPhotos.length} photo(s) to ${galleryType} gallery`);
+  }, []);
+
+  const handleClearGallery = useCallback((galleryType: GalleryType) => {
+    setState(prev => ({
+      ...prev,
+      galleries: {
+        ...prev.galleries,
+        [galleryType]: {
+          ...prev.galleries[galleryType],
+          candidatePhotos: [],
+          selectedPhoto: undefined
+        }
+      }
+    }));
+    toast.success(`Cleared ${galleryType} gallery`);
+  }, []);
+
+  const toggleManualMode = useCallback(() => {
+    setManualMode(prev => {
+      const newMode = !prev;
+      if (newMode) {
+        // Clear all galleries when entering manual mode
+        setState(prevState => ({
+          ...prevState,
+          galleries: {
+            precondition: { ...prevState.galleries.precondition, candidatePhotos: [], selectedPhoto: undefined },
+            damage: { ...prevState.galleries.damage, candidatePhotos: [], selectedPhoto: undefined },
+            completion: { ...prevState.galleries.completion, candidatePhotos: [], selectedPhoto: undefined }
+          }
+        }));
+        toast.info('Manual mode enabled - drag & drop photos to galleries');
+      } else {
+        // Restore original data when exiting manual mode if available
+        if (currentSet) {
+          setState(prevState => ({
+            ...prevState,
+            galleries: {
+              precondition: {
+                ...prevState.galleries.precondition,
+                candidatePhotos: currentSet.preconditionPhotos,
+                selectedPhoto: currentSet.preconditionPhotos[0]
+              },
+              damage: {
+                ...prevState.galleries.damage,
+                candidatePhotos: currentSet.damagePhotos,
+                selectedPhoto: currentSet.damagePhotos[0]
+              },
+              completion: {
+                ...prevState.galleries.completion,
+                candidatePhotos: currentSet.completionPhotos,
+                selectedPhoto: currentSet.completionPhotos[0]
+              }
+            }
+          }));
+        }
+        toast.info('Manual mode disabled - restored original data');
+      }
+      return newMode;
+    });
+  }, [currentSet]);
+
   useEffect(() => {
     if (!currentSet) return;
     try {
@@ -782,12 +870,14 @@ const [isProcessing, setIsProcessing] = useState(false);
               onOpenMapWindow={handleOpenMapWindow}
               mapVisible={false}
               onReset={handleReset}
-          onToggleReportGenerator={() => setShowReportGenerator(!showReportGenerator)}
-          showReportGenerator={showReportGenerator}
-          showRecommendations={showRecommendations}
-          onToggleRecommendations={() => setShowRecommendations(!showRecommendations)}
-          showUserGuide={showUserGuide}
-          onToggleUserGuide={() => setShowUserGuide(!showUserGuide)}
+              onToggleReportGenerator={() => setShowReportGenerator(!showReportGenerator)}
+              showReportGenerator={showReportGenerator}
+              showRecommendations={showRecommendations}
+              onToggleRecommendations={() => setShowRecommendations(!showRecommendations)}
+              showUserGuide={showUserGuide}
+              onToggleUserGuide={() => setShowUserGuide(!showUserGuide)}
+              manualMode={manualMode}
+              onToggleManualMode={toggleManualMode}
             />
             
             {/* Inline Approval Controls */}
@@ -817,56 +907,88 @@ const [isProcessing, setIsProcessing] = useState(false);
             </Dialog>
 
 
-            {/* Photo Galleries - Maximized for Assessment */}
-            <div className={`grid gap-1 ${
-              visibleGalleries === 1 ? 'grid-cols-1 h-[80vh]' :
-              visibleGalleries === 2 ? 'grid-cols-2 h-[80vh]' : 
-              'grid-cols-3 h-[75vh]'
-            }`}>
-              <PhotoGallery
-                type="precondition"
-                photos={state.galleries.precondition.candidatePhotos}
-                selectedPhoto={state.galleries.precondition.selectedPhoto}
-                onPhotoSelect={(photo) => handlePhotoSelect('precondition', photo)}
-                rotation={state.galleries.precondition.rotation}
-                zoom={state.galleries.precondition.zoom}
-                panX={state.galleries.precondition.panX}
-                panY={state.galleries.precondition.panY}
-                onRotate={() => handleRotate('precondition')}
-                onZoomToggle={() => handleZoomToggle('precondition')}
-                onPan={(deltaX, deltaY) => handlePan('precondition', deltaX, deltaY)}
-                visible={state.galleries.precondition.visible}
-              />
+            {/* Main Content Layout - Gallery First (Leftmost) */}
+            <div className="flex gap-2 h-[75vh]">
+              
+              {/* Photo Galleries - Now Leftmost */}
+              <div className={`${
+                visibleGalleries === 1 ? 'w-full' :
+                visibleGalleries === 2 ? 'w-2/3' : 
+                'w-3/4'
+              } grid gap-1 ${
+                visibleGalleries === 1 ? 'grid-cols-1' :
+                visibleGalleries === 2 ? 'grid-cols-2' : 
+                'grid-cols-3'
+              }`}>
+                <PhotoGallery
+                  type="precondition"
+                  photos={state.galleries.precondition.candidatePhotos}
+                  selectedPhoto={state.galleries.precondition.selectedPhoto}
+                  onPhotoSelect={(photo) => handlePhotoSelect('precondition', photo)}
+                  rotation={state.galleries.precondition.rotation}
+                  zoom={state.galleries.precondition.zoom}
+                  panX={state.galleries.precondition.panX}
+                  panY={state.galleries.precondition.panY}
+                  onRotate={() => handleRotate('precondition')}
+                  onZoomToggle={() => handleZoomToggle('precondition')}
+                  onPan={(deltaX, deltaY) => handlePan('precondition', deltaX, deltaY)}
+                  visible={state.galleries.precondition.visible}
+                  manualMode={manualMode}
+                  onPhotosUpload={(files) => handleManualPhotoUpload('precondition', files)}
+                  onClearGallery={() => handleClearGallery('precondition')}
+                />
 
-              <PhotoGallery
-                type="damage"
-                photos={state.galleries.damage.candidatePhotos}
-                selectedPhoto={state.galleries.damage.selectedPhoto}
-                onPhotoSelect={(photo) => handlePhotoSelect('damage', photo)}
-                rotation={state.galleries.damage.rotation}
-                zoom={state.galleries.damage.zoom}
-                panX={state.galleries.damage.panX}
-                panY={state.galleries.damage.panY}
-                onRotate={() => handleRotate('damage')}
-                onZoomToggle={() => handleZoomToggle('damage')}
-                onPan={(deltaX, deltaY) => handlePan('damage', deltaX, deltaY)}
-                visible={state.galleries.damage.visible}
-              />
+                <PhotoGallery
+                  type="damage"
+                  photos={state.galleries.damage.candidatePhotos}
+                  selectedPhoto={state.galleries.damage.selectedPhoto}
+                  onPhotoSelect={(photo) => handlePhotoSelect('damage', photo)}
+                  rotation={state.galleries.damage.rotation}
+                  zoom={state.galleries.damage.zoom}
+                  panX={state.galleries.damage.panX}
+                  panY={state.galleries.damage.panY}
+                  onRotate={() => handleRotate('damage')}
+                  onZoomToggle={() => handleZoomToggle('damage')}
+                  onPan={(deltaX, deltaY) => handlePan('damage', deltaX, deltaY)}
+                  visible={state.galleries.damage.visible}
+                  manualMode={manualMode}
+                  onPhotosUpload={(files) => handleManualPhotoUpload('damage', files)}
+                  onClearGallery={() => handleClearGallery('damage')}
+                />
 
-              <PhotoGallery
-                type="completion"
-                photos={state.galleries.completion.candidatePhotos}
-                selectedPhoto={state.galleries.completion.selectedPhoto}
-                onPhotoSelect={(photo) => handlePhotoSelect('completion', photo)}
-                rotation={state.galleries.completion.rotation}
-                zoom={state.galleries.completion.zoom}
-                panX={state.galleries.completion.panX}
-                panY={state.galleries.completion.panY}
-                onRotate={() => handleRotate('completion')}
-                onZoomToggle={() => handleZoomToggle('completion')}
-                onPan={(deltaX, deltaY) => handlePan('completion', deltaX, deltaY)}
-                visible={state.galleries.completion.visible}
-              />
+                <PhotoGallery
+                  type="completion"
+                  photos={state.galleries.completion.candidatePhotos}
+                  selectedPhoto={state.galleries.completion.selectedPhoto}
+                  onPhotoSelect={(photo) => handlePhotoSelect('completion', photo)}
+                  rotation={state.galleries.completion.rotation}
+                  zoom={state.galleries.completion.zoom}
+                  panX={state.galleries.completion.panX}
+                  panY={state.galleries.completion.panY}
+                  onRotate={() => handleRotate('completion')}
+                  onZoomToggle={() => handleZoomToggle('completion')}
+                  onPan={(deltaX, deltaY) => handlePan('completion', deltaX, deltaY)}
+                  visible={state.galleries.completion.visible}
+                  manualMode={manualMode}
+                  onPhotosUpload={(files) => handleManualPhotoUpload('completion', files)}
+                  onClearGallery={() => handleClearGallery('completion')}
+                />
+              </div>
+
+              {/* Right Panel - Compact for Supporting Tools */}
+              {visibleGalleries < 3 && (
+                <div className="flex-1 min-w-[300px] max-w-[400px] space-y-2">
+                  {manualMode && (
+                    <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                      <h4 className="font-semibold mb-1 text-primary">Manual Mode Active</h4>
+                      <p className="text-muted-foreground text-xs">
+                        Drag & drop photos directly into galleries or use the upload buttons.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+              
             </div>
           </>
         )}

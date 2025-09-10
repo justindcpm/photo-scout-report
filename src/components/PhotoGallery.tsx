@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { RotateCw, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RotateCw, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Upload, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PhotoMetadata, GalleryType } from '@/types/damage-report';
@@ -18,6 +18,9 @@ interface PhotoGalleryProps {
   onZoomToggle: () => void;
   onPan: (deltaX: number, deltaY: number) => void;
   visible: boolean;
+  manualMode?: boolean;
+  onPhotosUpload?: (files: FileList) => void;
+  onClearGallery?: () => void;
 }
 
 export const PhotoGallery = ({
@@ -32,11 +35,16 @@ export const PhotoGallery = ({
   onRotate,
   onZoomToggle,
   onPan,
-  visible
+  visible,
+  manualMode = false,
+  onPhotosUpload,
+  onClearGallery
 }: PhotoGalleryProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [isDragOver, setIsDragOver] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getTypeColor = (type: GalleryType) => {
     switch (type) {
@@ -85,15 +93,92 @@ export const PhotoGallery = ({
     }
   };
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    if (manualMode) {
+      setIsDragOver(true);
+    }
+  }, [manualMode]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    if (manualMode) {
+      setIsDragOver(false);
+    }
+  }, [manualMode]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    if (manualMode && onPhotosUpload) {
+      setIsDragOver(false);
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        onPhotosUpload(files);
+      }
+    }
+  }, [manualMode, onPhotosUpload]);
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0 && onPhotosUpload) {
+      onPhotosUpload(files);
+      e.target.value = ''; // Reset input
+    }
+  }, [onPhotosUpload]);
+
+  const handleUploadClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
   if (!visible) return null;
 
   return (
-    <Card className="flex-1 bg-gradient-gallery shadow-gallery overflow-hidden border-0 rounded-lg">
+    <Card className={`flex-1 bg-gradient-gallery shadow-gallery overflow-hidden border-0 rounded-lg ${
+      manualMode && isDragOver ? 'ring-2 ring-primary ring-opacity-50 bg-primary/5' : ''
+    }`}
+    onDragOver={handleDragOver}
+    onDragLeave={handleDragLeave}
+    onDrop={handleDrop}
+    >
+      {/* Hidden file input for manual uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+      
       {/* Ultra Compact Header */}
       <div className={`p-1 border-b bg-${getTypeColor(type)} text-${getTypeColor(type)}-foreground`}>
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-xs uppercase tracking-wide">{type}</h3>
           <div className="flex gap-0.5">
+            {manualMode && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="tool"
+                  onClick={handleUploadClick}
+                  className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20 h-5 w-5 p-0.5`}
+                  title="Upload Photos"
+                >
+                  <Upload className="w-2.5 h-2.5" />
+                </Button>
+                {photos.length > 0 && onClearGallery && (
+                  <Button
+                    variant="ghost"
+                    size="tool"
+                    onClick={onClearGallery}
+                    className={`text-${getTypeColor(type)}-foreground hover:bg-${getTypeColor(type)}-foreground/20 h-5 w-5 p-0.5`}
+                    title="Clear Gallery"
+                  >
+                    <Trash2 className="w-2.5 h-2.5" />
+                  </Button>
+                )}
+              </>
+            )}
             <Button
               variant="ghost"
               size="tool"
@@ -160,13 +245,28 @@ export const PhotoGallery = ({
               />
             </div>
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
-                  <ZoomIn className="w-8 h-8" />
-                </div>
-                <p>No photo selected</p>
-                <p className="text-sm">Click a thumbnail below to view</p>
+            <div className={`w-full h-full flex items-center justify-center text-muted-foreground ${
+              manualMode ? 'border-2 border-dashed border-muted-foreground/30 rounded-lg m-2' : ''
+            }`}>
+              <div className="text-center p-4">
+                {manualMode ? (
+                  <>
+                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Upload className="w-8 h-8" />
+                    </div>
+                    <p className="font-medium">Drop photos here</p>
+                    <p className="text-sm">or <button onClick={handleUploadClick} className="text-primary hover:underline">browse files</button></p>
+                    <p className="text-xs mt-1 text-muted-foreground/70">Add {type} photos to compare</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
+                      <ZoomIn className="w-8 h-8" />
+                    </div>
+                    <p>No photo selected</p>
+                    <p className="text-sm">Click a thumbnail below to view</p>
+                  </>
+                )}
               </div>
             </div>
           )}
