@@ -77,10 +77,10 @@ export const ReportHeader = ({
           <div className="flex gap-2">
             {onToggleManualMode && (
               <Button
-                variant={manualMode ? "default" : "outline"}
+                variant="ghost"
                 size="sm"
                 onClick={onToggleManualMode}
-                className="shrink-0"
+                className={`shrink-0 text-primary-foreground hover:bg-primary-foreground/20 ${manualMode ? 'bg-primary-foreground/20' : ''}`}
               >
                 {manualMode ? <Edit3 className="w-4 h-4 mr-2" /> : <Camera className="w-4 h-4 mr-2" />}
                 {manualMode ? 'Manual Mode' : 'Auto Mode'}
@@ -89,10 +89,10 @@ export const ReportHeader = ({
             
             {onToggleSetMode && (
               <Button
-                variant={setMode ? "default" : "outline"}
+                variant="ghost"
                 size="sm"
                 onClick={onToggleSetMode}
-                className="shrink-0"
+                className={`shrink-0 text-primary-foreground hover:bg-primary-foreground/20 ${setMode ? 'bg-primary-foreground/20' : ''}`}
               >
                 <Link className="w-4 h-4 mr-2" />
                 {setMode ? 'Set Mode' : 'Individual'}
@@ -100,10 +100,10 @@ export const ReportHeader = ({
             )}
             
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={onOpenMapWindow}
-              className="shrink-0"
+              className="shrink-0 text-primary-foreground hover:bg-primary-foreground/20"
             >
               <MapPin className="w-4 h-4 mr-2" />
               Open Map
@@ -111,10 +111,10 @@ export const ReportHeader = ({
             
             {onToggleUserGuide && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={onToggleUserGuide}
-                className={`shrink-0 ${showUserGuide ? 'bg-primary/10 border-primary' : ''}`}
+                className={`shrink-0 text-primary-foreground hover:bg-primary-foreground/20 ${showUserGuide ? 'bg-primary-foreground/20' : ''}`}
               >
                 <HelpCircle className="w-4 h-4 mr-2" />
                 User Guide
