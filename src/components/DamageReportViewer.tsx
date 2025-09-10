@@ -6,7 +6,6 @@ import { DamageMap } from './DamageMap';
 import type { DamageMapHandle } from './DamageMap';
 import { ReportGenerator } from './ReportGenerator';
 import { ApprovalControls } from './ApprovalControls';
-import { FeatureRecommendations } from './FeatureRecommendations';
 import { UserGuide } from './UserGuide';
 import { PhotoSet, GalleryType, DamageReportState, PhotoMetadata, PhotoSetApproval } from '@/types/damage-report';
 import { processFolderStructure } from '@/utils/photo-processing';
@@ -36,9 +35,8 @@ export const DamageReportViewer = () => {
   });
   
   const [manualMode, setManualMode] = useState(false);
-const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [showReportGenerator, setShowReportGenerator] = useState(false);
-  const [showRecommendations, setShowRecommendations] = useState(false);
   const [showUserGuide, setShowUserGuide] = useState(false);
   const mapRef = useRef<DamageMapHandle | null>(null);
   const [editorMode, setEditorMode] = useState(false);
@@ -872,8 +870,6 @@ const [isProcessing, setIsProcessing] = useState(false);
               onReset={handleReset}
               onToggleReportGenerator={() => setShowReportGenerator(!showReportGenerator)}
               showReportGenerator={showReportGenerator}
-              showRecommendations={showRecommendations}
-              onToggleRecommendations={() => setShowRecommendations(!showRecommendations)}
               showUserGuide={showUserGuide}
               onToggleUserGuide={() => setShowUserGuide(!showUserGuide)}
               manualMode={manualMode}
@@ -910,12 +906,8 @@ const [isProcessing, setIsProcessing] = useState(false);
             {/* Main Content Layout - Gallery First (Leftmost) */}
             <div className="flex gap-2 h-[75vh]">
               
-              {/* Photo Galleries - Now Leftmost */}
-              <div className={`${
-                visibleGalleries === 1 ? 'w-full' :
-                visibleGalleries === 2 ? 'w-2/3' : 
-                'w-3/4'
-              } grid gap-1 ${
+              {/* Photo Galleries - Full Width */}
+              <div className={`w-full grid gap-1 ${
                 visibleGalleries === 1 ? 'grid-cols-1' :
                 visibleGalleries === 2 ? 'grid-cols-2' : 
                 'grid-cols-3'
@@ -974,30 +966,11 @@ const [isProcessing, setIsProcessing] = useState(false);
                   onClearGallery={() => handleClearGallery('completion')}
                 />
               </div>
-
-              {/* Right Panel - Compact for Supporting Tools */}
-              {visibleGalleries < 3 && (
-                <div className="flex-1 min-w-[300px] max-w-[400px] space-y-2">
-                  {manualMode && (
-                    <div className="bg-muted/50 rounded-lg p-3 text-sm">
-                      <h4 className="font-semibold mb-1 text-primary">Manual Mode Active</h4>
-                      <p className="text-muted-foreground text-xs">
-                        Drag & drop photos directly into galleries or use the upload buttons.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
               
             </div>
           </>
         )}
       </div>
-
-      <FeatureRecommendations 
-        open={showRecommendations} 
-        onOpenChange={setShowRecommendations} 
-      />
 
       <UserGuide 
         open={showUserGuide} 

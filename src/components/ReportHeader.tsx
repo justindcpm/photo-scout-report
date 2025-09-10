@@ -19,8 +19,6 @@ interface ReportHeaderProps {
   onReset: () => void;
   onToggleReportGenerator: () => void;
   showReportGenerator: boolean;
-  showRecommendations?: boolean;
-  onToggleRecommendations?: () => void;
   showUserGuide?: boolean;
   onToggleUserGuide?: () => void;
   manualMode?: boolean;
@@ -41,8 +39,6 @@ export const ReportHeader = ({
   onReset,
   onToggleReportGenerator,
   showReportGenerator,
-  showRecommendations = false,
-  onToggleRecommendations,
   showUserGuide = false,
   onToggleUserGuide,
   manualMode = false,
@@ -106,18 +102,6 @@ export const ReportHeader = ({
               >
                 <HelpCircle className="w-4 h-4 mr-2" />
                 User Guide
-              </Button>
-            )}
-            
-            {onToggleRecommendations && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onToggleRecommendations}
-                className={`shrink-0 ${showRecommendations ? 'bg-primary/10 border-primary' : ''}`}
-              >
-                <Zap className="w-4 h-4 mr-2" />
-                {showRecommendations ? 'Hide Features' : 'Feature Ideas'}
               </Button>
             )}
             
